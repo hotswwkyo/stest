@@ -110,12 +110,17 @@ class AbstractTestCase(unittest.TestCase):
                     printables.append(printable)
                 if clinks:
                     try:
-                        raise self.failureException('{} Circular dependency: {}'.format(self.id(), ", ".join(printables)))
+                        raise self.failureException('{} circular dependency: {}'.format(self.id(), ", ".join(printables)))
                     except self.failureException:
                         exc_info = sys.exc_info()
                         if addFailure:
                             addFailure(self, exc_info)
                     return result
+
+                # alway_run 为True，则不管该用例所依赖的其他用例是否成功都会执行该用例
+                alway_run = self.test_method_settings.get(Test.ALWAY_RUN, False)
+                if alway_run:
+                    return super().run(result=result)
 
                 # 检查用例所依赖的其他测试用例是否测试通过，如果不通过则不执行该用例并标记结果为失败
                 tresult, msglist = dm.dependent_test_is_pass(self)

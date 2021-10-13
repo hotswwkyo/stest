@@ -15,7 +15,6 @@ class SevenTestResult(TextTestResult):
 
     def startTest(self, test):
 
-        # 添加检查依赖用例的逻辑,所依赖的用例没有执行或者执行失败，则不执行该用例，并设置该用例结果为阻塞
         return super().startTest(test)
 
     def stopTest(self, test):

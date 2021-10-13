@@ -2,3 +2,4 @@ build
 dist
 stest.egg-info
 *.pyc
+PYPI-README.md

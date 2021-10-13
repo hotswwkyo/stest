@@ -26,7 +26,7 @@ class Test(object):
             groups: 方法所属的组的列表
             enabled: 是否启用执行该测试方法
             priority: 测试方法的执行优先级，数值越小执行越靠前
-            alway_run: 如果设置为true，则此测试方法将始终运行，即使它依赖于失败的方法也是如此 --- 该功能暂未实现
+            alway_run: 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False
             description: 测试用例名称
             data_provider: 测试方法的参数化数据提供者，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表
             测试方法只有一个参数化时，data_provider 返回值是 一维列表，如:
