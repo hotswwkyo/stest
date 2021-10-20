@@ -23,6 +23,16 @@ class TestCaseWrapper(AttributeManager):
     XFAILURE = ConstAttributeMarker(5, "预期失败", alias="预期失败")
     XSUCCESS = ConstAttributeMarker(6, "预期失败却成功", alias="unexpected successes")
 
+    CSS_CLASS_MAPS = {
+        SUCCESS.value: 'test-pass',
+        FAILURE.value: 'test-fail',
+        ERROR.value: 'test-error',
+        BLOCKED.value: 'test-blocked',
+        SKIPED.value: 'test-skip',
+        XFAILURE.value: 'test-xfail',
+        XSUCCESS.value: 'test-unexpected-pass',
+    }
+
     def __init__(self, test, id, result_code, message=""):
 
         self.test = test
@@ -78,6 +88,11 @@ class TestCaseWrapper(AttributeManager):
         markers = cls.const_attrs.values()
         codes = [marker.value for marker in markers]
         return codes
+
+    @property
+    def css_class(self):
+
+        return self.CSS_CLASS_MAPS[self.result_code]
 
     @property
     def description(self):
@@ -166,7 +181,7 @@ class TestResultFormatter(object):
             results = []
             for tc in group_testcases:
                 result = dict(
-                    result=dict(code=tc.result_code, name=tc.result_name),
+                    result=dict(code=tc.result_code, name=tc.result_name, css_class=tc.css_class),
                     id=tc.id,
                     name=tc.name,
                     method_name=tc.method_name,

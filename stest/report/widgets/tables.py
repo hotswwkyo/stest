@@ -139,7 +139,7 @@ class SummaryTable(elements.Table):
 
 class ReportTable(elements.Table):
 
-    DEFAULT_CSS_CLASSES = ["seven-table"]
+    DEFAULT_CSS_CLASSES = ["seven-table", "details"]
     FIXED_HEADER_TITLES = ["测试点 / 测试用例", "总计", "通过", "失败", "阻塞", "异常", "skip", "预期失败", "unexpected passes"]
     TESTPOINT_ID_PREFIX = "testpoint_"
     TESTCASE_ID_PREFIX = "testcase_"
@@ -163,6 +163,8 @@ class ReportTable(elements.Table):
     TESTSTEPS_ZONE_ROW_CSS_CLASS = "teststeps"
     TESTSTEP_ID_PREFIX = "teststep_"
     TESTSTEP_TABLE_CONTAINER_CSS_CLASS = "seven-table-container"
+
+    TESTCASE_SHOW_INFO_LAYER = 'testcase-show-info-layer'
 
     def __init__(self, testpoints=[]):
         super().__init__()
@@ -230,11 +232,14 @@ class ReportTable(elements.Table):
         div = elements.Div()
         outputmsg = '\n'.join(message) if message else ''
         div.append_child(elements.Pre(outputmsg))
+        show_div = elements.Div()
+        show_div.add_css_class(self.TESTCASE_SHOW_INFO_LAYER)
         if nargs:
-            cell.append_child(self.__build_arg_area(nargs, label="位置参数"))
+            show_div.append_child(self.__build_arg_area(nargs, label="位置参数"))
         if kwargs:
-            cell.append_child(self.__build_arg_area(kwargs, label="关键字参数"))
-        cell.append_child(div)
+            show_div.append_child(self.__build_arg_area(kwargs, label="关键字参数"))
+        show_div.append_child(div)
+        cell.append_child(show_div)
         row.append_child(cell)
         return row
 
@@ -255,8 +260,8 @@ class ReportTable(elements.Table):
             row.append_child(*preceding_siblings)
 
             result_cell = elements.TD(tc["result"]["name"])
-            result_cell.add_css_class(self.TESTCASE_RESULT_COL_CSS_CLASS)
-            result_cell.set_attr("style", "cursor: pointer;")
+            result_cell.add_css_class(self.TESTCASE_RESULT_COL_CSS_CLASS, tc["result"]["css_class"])
+            # result_cell.set_attr("style", "cursor: pointer;")
             result_cell.set_attr("colspan", len(self.header_titles) - len(preceding_siblings))
             row.append_child(result_cell)
             row.after(self._build_console_row(tc_html_id, teststep_zone_html_id, tc))

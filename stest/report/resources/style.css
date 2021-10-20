@@ -458,7 +458,7 @@
 }
 
 .seven-table tr:hover {
-	color: #704db2;
+	/* color: #704db2; */
 }
 
 .seven-table tr {
@@ -551,6 +551,7 @@ tr.testcase-hidden {
 
 .seven-table.summary tr:hover {
 	/* background-color:#e5ecec; */
+	color: #1b0a3a;
 }
 
 .seven-table.summary tr th {
@@ -562,10 +563,38 @@ tr.testcase-hidden {
 }
 
 .seven-table.summary thead tr:first-child {
+	color: #1b0a3a;
 	border-bottom-style: solid;
 	border-width: 1px;
 	text-align: left;
 	font-weight: 700;
+	background-color: aliceblue;
+}
+
+.seven-table.details tr {
+	/* border-color: #9ba7af; */
+	border-top-style: none;
+	border-left-style: none;
+	border-right-style: none;
+}
+
+.seven-table.details tr:hover {
+	background-color: #f2f6f6;
+}
+
+.seven-table.details tr th {
+	border-style: none;
+}
+
+.seven-table.details tr td {
+	border-style: none;
+}
+
+.seven-table.details thead tr:first-child {
+	border-top-color: rgb(243, 247, 250);
+	border-left-color: rgb(243, 247, 250);
+	border-right-color: rgb(243, 247, 250);
+	background-color: rgb(252, 252, 253);
 }
 
 .layer {
@@ -914,4 +943,40 @@ textarea {
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	padding: 0 0 0 10px;
+}
+
+.testcase-result {
+	cursor: pointer;
+}
+
+.test-pass {
+	color: #228b22;
+}
+
+.test-fail {
+	color: red;
+}
+
+.test-error {
+	color: blueviolet;
+}
+
+.test-blocked {
+	color: sandybrown;
+}
+
+.test-skip {
+	color: #c0c0c0;
+}
+
+.test-xfail {
+	color: #9acd32;
+}
+
+.test-unexpected-pass {
+	color: #a52a2a;
+}
+
+.testcase-show-info-layer {
+	margin: 21px;
 }
