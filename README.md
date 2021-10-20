@@ -221,7 +221,7 @@ pip方式安装
 | groups | 列表 | 方法所属的组的列表|
 | enabled | 布尔值 | 是否启用执行该测试方法 |
 | priority | 整数 | 测试方法的执行优先级，数值越小执行越靠前 |
-| alway_run | 布尔值 | 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
+| alway_run | 布尔值 | 如果设置为True，不管它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
 | description | 字符串 | 测试用例名称 |
 | data_provider | object | 测试方法的参数化数据提供者，默认值是None，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表（当测试方法只有一个参数化时，应返回一维列表，多个参数化时返回二维列表） |
 | data_provider_args | 元祖 | 数据提供者变长位置参数(args) |
