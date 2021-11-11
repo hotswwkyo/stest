@@ -29,31 +29,31 @@ pip方式安装
 
 代码中调stest.main()执行
 
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
-    import stest
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
-
-        return [[1,2,3], [3,4,7]]
+import stest
+from stest import AbstractTestCase
+from stest import Test as testcase
 
 
-    class Demo1Test(AbstractTestCase):
+def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
 
-        @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
-        def integer_addition_02(self, number_1, number_2, expected):
+    return [[1,2,3], [3,4,7]]
 
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-    if __name__ == '__main__':
-        # Demo1Test.run_test()
-        stest.main()
-    ```
+
+class Demo1Test(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
+    def integer_addition_02(self, number_1, number_2, expected):
+
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+if __name__ == '__main__':
+    # Demo1Test.run_test()
+    stest.main()
+```
 
 ## 快速开始
 
