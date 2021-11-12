@@ -6,6 +6,7 @@
 '''
 from .result_formatter import TestResultFormatter
 from .report.htmltemplate import HtmlReportTemplate
+from .report.jenkins_junit_xml_template import JenkinsJunitXMLReportTemplate
 
 
 class ReportBuilder(object):
@@ -32,4 +33,11 @@ class ReportBuilder(object):
         json_result = TestResultFormatter(self.result).to_py_json()
         testpoints = json_result.get("testpoints")
         template = HtmlReportTemplate(testpoints, **summary_info)
+        template.save_as_file(filename)
+
+    def build_jenkins_junit_xml_report(self, filename, **summary_info):
+
+        json_result = TestResultFormatter(self.result).to_py_json()
+        testpoints = json_result.get("testpoints")
+        template = JenkinsJunitXMLReportTemplate(testpoints, test_suite_name=summary_info.get('project_name', 'stest'))
         template.save_as_file(filename)
