@@ -4,7 +4,10 @@
 @Author: 思文伟
 @Date: 2021/09/15
 '''
+import time
 from unittest.runner import TextTestResult
+
+from .const import Const
 
 
 class SevenTestResult(TextTestResult):
@@ -15,10 +18,16 @@ class SevenTestResult(TextTestResult):
 
     def startTest(self, test):
 
+        stime = time.perf_counter()
+        setattr(test, Const.STEST_START_TIME, stime)
         return super().startTest(test)
 
     def stopTest(self, test):
-        return super().stopTest(test)
+
+        rv = super().stopTest(test)
+        ftime = time.perf_counter()
+        setattr(test, Const.STEST_FINISH_TIME, ftime)
+        return rv
 
     def addSuccess(self, test):
 

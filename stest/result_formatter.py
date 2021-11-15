@@ -6,6 +6,7 @@
 '''
 import copy
 import json
+from .const import Const
 from .utils import strclass
 from .test_wrapper import Test
 from .abstract_testcase import AbstractTestCase
@@ -58,6 +59,19 @@ class TestCaseWrapper(AttributeManager):
     @property
     def number(self):
         return self.id
+
+    @property
+    def duration(self):
+        """ 返回执行用例耗时，单位秒"""
+
+        start_time = getattr(self.test, Const.STEST_START_TIME, None)
+        finish_time = getattr(self.test, Const.STEST_FINISH_TIME, None)
+
+        if start_time is not None and finish_time is not None:
+            total_time = finish_time - start_time
+            return '{:f}'.format(total_time)
+        else:
+            return ''
 
     @property
     def testpoint(self):
@@ -184,6 +198,7 @@ class TestResultFormatter(object):
                     result=dict(code=tc.result_code, name=tc.result_name, css_class=tc.css_class),
                     id=tc.id,
                     name=tc.name,
+                    duration=tc.duration,
                     method_name=tc.method_name,
                     testdatas=tc.printable_testdatas,
                     number=tc.number,

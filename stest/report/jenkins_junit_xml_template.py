@@ -114,6 +114,7 @@ class JenkinsJunitXMLReportTemplate(object):
             for testcase in testcases:
                 name = testcase['name']
                 method = testcase['method_name']
+                duration = testcase['duration']
                 output_message = testcase['output_message']
                 error_message = testcase['error_message']
                 summary_and_details = [error_message, error_message]
@@ -129,7 +130,7 @@ class JenkinsJunitXMLReportTemplate(object):
                     case_result[self.TAGS.skipped] = summary_and_details
                 elif rcode in [TestCaseWrapper.ERROR]:
                     case_result[self.TAGS.error] = summary_and_details
-                el_tc = self.__build_testcase_element('{} - {}'.format(method, name), classname, '', **case_result)
+                el_tc = self.__build_testcase_element('{} - {}'.format(method, name), classname, duration, **case_result)
                 el_testcases.append(el_tc)
 
         suite = self.__build_testsuite_element(self.test_suite_name, tests, error_count, fail_count, skip_count)

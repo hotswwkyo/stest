@@ -9,6 +9,7 @@
     >* 支持设置用例依赖
     >* 内置参数化数据存取方案(使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护)
     >* 支持生成更加简洁美观且可作为独立文件发送的HTML测试报告
+    >* 支持生成jenkins junit xml 格式测试报告，用于jenkins集成
     >    ![](https://github.com/hotswwkyo/stest/blob/main/img/htmlreport.png)
 
 
