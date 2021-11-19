@@ -262,8 +262,12 @@ class ReportTable(elements.Table):
             result_cell = elements.TD(tc["result"]["name"])
             result_cell.add_css_class(self.TESTCASE_RESULT_COL_CSS_CLASS, tc["result"]["css_class"])
             # result_cell.set_attr("style", "cursor: pointer;")
+            duration = tc["duration"]
+            timecell = elements.TD('{}秒'.format(duration) if duration else '')
+            preceding_siblings.append(timecell)
             result_cell.set_attr("colspan", len(self.header_titles) - len(preceding_siblings))
             row.append_child(result_cell)
+            row.append_child(timecell)
             row.after(self._build_console_row(tc_html_id, teststep_zone_html_id, tc))
             rows.append(row)
         return rows
