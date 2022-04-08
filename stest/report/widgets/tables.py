@@ -315,9 +315,9 @@ class ReportTable(elements.Table):
             if screenshot_info.get("result", False):
                 src = "data:image/png;base64,{}".format(screenshot_info.get("base64data", ""))
                 showview = elements.Img().set_attr("onclick", 'show_image_on_new_window(this)').set_attr("src", src)
+                showview.add_css_class(self.SCREENSHOT_OF_TEST_FAILURE)
             else:
                 showview = elements.Pre(screenshot_info.get("message", ""))
-            showview.add_css_class(self.SCREENSHOT_OF_TEST_FAILURE)
             el_content.append_child(showview)
         return el_fs
 
