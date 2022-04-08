@@ -5,10 +5,10 @@
 '''
 
 import os
-from . import utils
-from .attrs_marker import AttributeMarker
+from ..utils import sutils
+from ..utils.attrs_marker import AttributeMarker
 from .abstract_data_provider import AbsractDataProvider
-from .excel_file_reader import TestCaseExcelFileReader as ExcelReader
+from ..utils.excel_file_reader import TestCaseExcelFileReader as ExcelReader
 
 
 class SevenDataProvider(AbsractDataProvider):
@@ -27,17 +27,17 @@ class SevenDataProvider(AbsractDataProvider):
 
         param = self.PARAM_DATA_FILE_NAME
         filename = kwargs.get(param, default_value)
-        if utils.is_blank_space(filename):
+        if sutils.is_blank_space(filename):
             raise ValueError("数据文件名必须是字符串类型且不能为空")
         return filename
 
-    def _get_data_file_dir_paht(self, kwargs):
+    def _get_data_file_dir_path(self, kwargs):
 
         param = self.PARAM_DATA_FILE_DIR_PATH
         if param not in kwargs.keys():
             raise AttributeError("没有传入数据文件目录")
         dirpath = kwargs[param]
-        if utils.is_blank_space(dirpath):
+        if sutils.is_blank_space(dirpath):
             raise ValueError("数据文件目录必须是字符串类型且不能为空")
         return dirpath
 
@@ -54,10 +54,10 @@ class SevenDataProvider(AbsractDataProvider):
 
         name = data_file_name
         ext = self.FILE_EXT
-        if utils.is_blank_space(data_file_dir_path):
+        if sutils.is_blank_space(data_file_dir_path):
             raise ValueError("传入的数据文件目录路径不能为空：{}".format(data_file_dir_path))
         dir_path = data_file_dir_path
-        if name and not utils.is_blank_space(name):
+        if name and not sutils.is_blank_space(name):
             full_name = name if name.endswith(ext) else name + ext
         else:
             raise ValueError("无效数据文件名称：{}".format(name))
@@ -77,7 +77,7 @@ class SevenDataProvider(AbsractDataProvider):
         datasets = []
 
         filename = self._get_data_file_name(kwargs, test_class_name)
-        dirpath = self._get_data_file_dir_paht(kwargs)
+        dirpath = self._get_data_file_dir_path(kwargs)
         full_file_path = self._build_file_full_path(dirpath, filename)
 
         reader = ExcelReader(full_file_path, testcase_block_separators=self.BLOCK_FLAG, sheet_index_or_name=self._get_sheet_name_or_index(kwargs))

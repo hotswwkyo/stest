@@ -4,7 +4,7 @@
 @Author: 思文伟
 '''
 
-from .attrs_manager import AttributeManager
+from ..utils.attrs_manager import AttributeManager
 
 
 class AbsractDataProvider(AttributeManager):

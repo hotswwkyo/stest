@@ -10,15 +10,21 @@
  * 支持参数化功能
  * 支持数据驱动测试
  * 支持设置用例依赖
- * 内置参数化数据存取方案
- * 更加美观的HTML报告
+ * 内置参数化数据存取方案(使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护)
+ * 支持生成更加简洁美观且可作为独立文件发送的HTML测试报告
+ * 支持生成jenkins junit xml 格式测试报告，用于jenkins集成
+ * 支持自动查找并载入项目下的settings.py配置文件
+ * 支持灵活控制测试失败自动截图并附加到测试报告中
+ * 支持page object模式，内置一套易于维护的解决方案
+ * 驱动管理器（DRIVER_MANAGER）更加便捷的管理打开的驱动会话
+ * 对selenium、appium、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）做了底层集成支持
 
 
 Simple usage:
 
     import os
 
-    from stest import GLOBAL_CONFIG
+    from stest import settings
     from stest import AbstractTestCase
     from stest import Test as testcase
 
@@ -42,9 +48,6 @@ Simple usage:
             return datas
 
     TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
-
-    # 全局配置 配置默认内置参数数据提供者 测试数据文件所在的目录路径
-    # GLOBAL_CONFIG.seven_data_provider_data_file_dir = 'E:\\sw'
 
 
     class CalculationTest(AbstractTestCase):
@@ -99,7 +102,7 @@ Simple usage:
             self.assertEqual(result, int(expected))
 
         # 使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-        # 则会检测GLOBAL_CONFIG.seven_data_provider_data_file_dir 是否设置
+        # 则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
         # 没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
         @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
         def integer_subtraction_03(self,testdata):
@@ -130,10 +133,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__all__ = ['Test', 'GLOBAL_CONFIG', 'AbstractTestCase', 'AbsractDataProvider', 'main']
+__all__ = ['Test', 'AbstractTestCase', 'AbsractDataProvider', 'main', 'settings']
 
 from .main import main
-from .test_wrapper import Test
-from .global_config import GLOBAL_CONFIG
-from .abstract_testcase import AbstractTestCase
-from .abstract_data_provider import AbsractDataProvider
+from .conf import settings
+from .core.test_wrapper import Test
+from .core.abstract_testcase import AbstractTestCase
+from .core.abstract_data_provider import AbsractDataProvider

@@ -13,6 +13,7 @@ import smtplib
 import functools
 import tkinter.simpledialog
 import collections.abc as collections
+from collections.abc import MutableMapping
 from functools import cmp_to_key
 from email.header import Header
 from email.mime.text import MIMEText
@@ -231,51 +232,6 @@ def escape_xpath_value(value):
     return "'%s'" % value
 
 
-class DictToObject(object):
-    def __init__(self, py_dict):
-        """
-
-        """
-        if not isinstance(py_dict, dict):
-            raise ValueError("Data Type Must Be dict")
-        for field in py_dict:
-            value = py_dict[field]
-            if not isinstance(value, (dict, list, tuple)):
-                setattr(self, "%s" % field, value)
-            else:
-                if isinstance(value, dict):
-                    setattr(self, "%s" % field, self.__class__(value))
-                elif isinstance(value, tuple):
-                    setattr(self, "%s" % field, self.analyze_tuple(value))
-                else:
-                    setattr(self, "%s" % field, self.analyze_list(value))
-
-    def analyze_list(self, array):
-        for index, value in enumerate(array):
-            if isinstance(value, list):
-                self.analyze_list(value)
-            elif isinstance(value, tuple):
-                self.analyze_tuple(value)
-            elif isinstance(value, dict):  # if element of list is dict,converts the value of the element in the list into the object
-                array[index] = self.__class__(value)
-            else:
-                pass
-        return array
-
-    def analyze_tuple(self, array):
-        tuple_to_list = list(array)
-        for index, value in enumerate(tuple_to_list):
-            if isinstance(value, tuple):
-                self.analyze_tuple(value)
-            elif isinstance(value, tuple):
-                self.analyze_tuple(value)
-            elif isinstance(value, dict):  # if element of list is dict,converts the value of the element in the list into the object
-                tuple_to_list[index] = self.__class__(value)
-            else:
-                pass
-        return tuple(tuple_to_list)
-
-
 def get_the_number_of_pages(total_data, limit_size):
     """根据数据总数和每页显示数据数计算分页数
 
@@ -449,3 +405,93 @@ def get_caller_name():
     """获取直接调用该函数的函数或方法名"""
 
     return inspect.stack()[1][3]
+
+
+class StringKeyDict(MutableMapping):
+    def __init__(self, initial=None, remove_chars=(), to_lower_case=True, remove_all_whitespace=True):
+
+        self._data = {}
+        self._keys = {}
+        self.remove_chars = remove_chars
+        self.to_lower_case = to_lower_case
+        self.remove_all_whitespace = remove_all_whitespace
+        if initial:
+            self._add_initial(initial)
+
+    def _normalize_string(self, string):
+
+        empty = ""
+        if self.remove_all_whitespace:
+            string = empty.join(string.split())
+        if self.to_lower_case:
+            string = string.lower()
+            self.remove_chars = [c.lower() for c in self.remove_chars]
+        if self.remove_chars:
+            for remove_char in self.remove_chars:
+                if remove_char in string:
+                    string = string.replace(remove_char, empty)
+        return string
+
+    def _add_initial(self, initial):
+
+        items = initial.items() if hasattr(initial, 'items') else initial
+        for key, value in items:
+            self[key] = value
+
+    def __getitem__(self, key):
+
+        return self._data[self._normalize_string(key)]
+
+    def __setitem__(self, key, value):
+
+        lower_key = self._normalize_string(key)
+        self._data[lower_key] = value
+        self._keys.setdefault(lower_key, key)
+
+    def __delitem__(self, key):
+
+        lower_key = self._normalize_string(key)
+        del self._data[lower_key]
+        del self._keys[lower_key]
+
+    def __iter__(self):
+
+        return (self._keys[lower_key] for lower_key in sorted(self._keys))
+
+    def __len__(self):
+
+        return len(self._data)
+
+    def __str__(self):
+
+        return '{%s}' % ', '.join('%r: %r' % (key, self[key]) for key in self)
+
+    def __eq__(self, other):
+
+        if isinstance(other, StringKeyDict):
+            return self._data == other._data
+        else:
+            return False
+
+    def __ne__(self, other):
+
+        return not self == other
+
+    def __contains__(self, key):
+
+        return self._normalize_string(key) in self._data
+
+    def clear(self):
+
+        self._data.clear()
+        self._keys.clear()
+
+
+def mkdirs(dirpath, **kwargs):
+    """
+
+    See: os.makedirs
+    """
+
+    if not os.path.exists(dirpath):
+        os.makedirs(dirpath, **kwargs)

@@ -6,11 +6,12 @@
 '''
 import copy
 import json
-from .utils import strclass
+from ..const import Const
+from ..utils.sutils import strclass
 from .test_wrapper import Test
 from .abstract_testcase import AbstractTestCase
-from .attrs_manager import AttributeManager
-from .attrs_marker import ConstAttributeMarker
+from ..utils.attrs_manager import AttributeManager
+from ..utils.attrs_marker import ConstAttributeMarker
 
 
 class TestCaseWrapper(AttributeManager):
@@ -33,10 +34,11 @@ class TestCaseWrapper(AttributeManager):
         XSUCCESS.value: 'test-unexpected-pass',
     }
 
-    def __init__(self, test, id, result_code, message=""):
+    def __init__(self, test, id, result_code, message="", **kwargs):
 
         self.test = test
         self.id = id
+        self._kwargs = kwargs
         self.set_result(result_code, message)
         self.is_abstract_testcase = isinstance(self.test, AbstractTestCase)
         # self.is_abstract_testcase = hasattr(self.test, "collect_testcases")
@@ -58,6 +60,34 @@ class TestCaseWrapper(AttributeManager):
     @property
     def number(self):
         return self.id
+
+    @property
+    def duration(self):
+        """ 返回执行用例耗时，单位秒"""
+
+        start_time = getattr(self.test, Const.STEST_START_PERF_COUNTER, None)
+        finish_time = getattr(self.test, Const.STEST_FINISH_PERF_COUNTER, None)
+
+        if start_time is not None and finish_time is not None:
+            total_time = finish_time - start_time
+            return '{:f}'.format(total_time)
+        else:
+            return ''
+
+    @property
+    def start_time(self):
+
+        return getattr(self.test, Const.STEST_TESTCASE_START_TIME, None)
+
+    @property
+    def exec_number(self):
+        return getattr(self.test, Const.STEST_TESTCASE_EXEC_NUMBER, 0)
+
+    @property
+    def screenshot_info(self):
+
+        k = 'screenshot_info'
+        return self._kwargs.get(k, {})
 
     @property
     def testpoint(self):
@@ -93,6 +123,19 @@ class TestCaseWrapper(AttributeManager):
     def css_class(self):
 
         return self.CSS_CLASS_MAPS[self.result_code]
+
+    @property
+    def extra_info(self):
+        """用例额外信息，如编写者、修改者、最后修改者等"""
+
+        tms = getattr(self.test, 'test_method_settings', {})
+        info = {
+            Test.AUTHOR: tms.get(Test.AUTHOR, ""),
+            Test.EDITORS: tms.get(Test.EDITORS, []),
+            Test.LAST_MODIFYIED_BY: tms.get(Test.LAST_MODIFYIED_BY, ""),
+            Test.LAST_MODIFYIED_TIME: tms.get(Test.LAST_MODIFYIED_TIME, "")
+        }
+        return info
 
     @property
     def description(self):
@@ -184,12 +227,15 @@ class TestResultFormatter(object):
                     result=dict(code=tc.result_code, name=tc.result_name, css_class=tc.css_class),
                     id=tc.id,
                     name=tc.name,
+                    duration=tc.duration,
                     method_name=tc.method_name,
                     testdatas=tc.printable_testdatas,
                     number=tc.number,
                     description=tc.description,
                     output_message=tc.output_message,
                     error_message=tc.error_message,
+                    screenshot_info=tc.screenshot_info,
+                    extra_info=tc.extra_info,
                 )
                 results.append(result)
             testpoint = dict(name=pointname,
@@ -216,27 +262,28 @@ class TestResultFormatter(object):
         testcaselist = []
         id = 1
         for test, message in self.result.errors:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.ERROR, message=message))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.ERROR, message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
         for test, message in self.result.skipped:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SKIPED, message=message))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SKIPED, message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.failures:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.FAILURE, message=message))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.FAILURE, message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test in self.result.successes:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SUCCESS))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SUCCESS, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.expectedFailures:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XFAILURE, message=message))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XFAILURE, message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.unexpectedSuccesses:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XSUCCESS))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XSUCCESS, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
+        testcaselist.sort(key=lambda one: one.exec_number)
         return testcaselist
 
     def _get_testpoints(self):

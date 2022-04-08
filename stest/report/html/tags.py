@@ -75,3 +75,5 @@ class Tags(object):
     p = "p"
 
     hr = "hr"
+
+    img = "img"

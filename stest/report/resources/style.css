@@ -346,7 +346,23 @@
 .seven-icon-var-circle {
 	position: absolute;
 	left: 15px;
-	top: 2px;
+	top: 0;
+	font-size: 18px;
+	vertical-align: middle;
+}
+
+.seven-icon-var {
+	position: absolute;
+	left: 15px;
+	top: 0;
+	font-size: 18px;
+	vertical-align: middle;
+}
+
+.seven-icon-tips {
+	position: absolute;
+	left: 15px;
+	top: 0;
 	font-size: 18px;
 	vertical-align: middle;
 }
@@ -431,7 +447,9 @@
 	vertical-align: middle;
 }
 
-
+.seven-block {
+	display: block !important;
+}
 
 .seven-table {
 	width: 100%;
@@ -979,4 +997,9 @@ textarea {
 
 .testcase-show-info-layer {
 	margin: 21px;
+}
+
+.screenshot-of-test-failure{
+    width: 100%;
+    cursor: pointer;
 }

@@ -9,6 +9,12 @@
     >* 支持设置用例依赖
     >* 内置参数化数据存取方案(使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护)
     >* 支持生成更加简洁美观且可作为独立文件发送的HTML测试报告
+    >* 支持生成jenkins junit xml 格式测试报告，用于jenkins集成
+    >* 支持自动查找并载入项目下的settings.py配置文件
+    >* 支持灵活控制测试失败自动截图并附加到测试报告中
+    >* 支持page object模式，内置一套易于维护的解决方案
+    >* 驱动管理器（DRIVER_MANAGER）更加便捷的管理打开的驱动会话
+    >* 对selenium、appium、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）做了底层集成支持
     >    ![](https://github.com/hotswwkyo/stest/blob/main/img/htmlreport.png)
 
 
@@ -29,31 +35,31 @@ pip方式安装
 
 代码中调stest.main()执行
 
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
-    import stest
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
-
-        return [[1,2,3], [3,4,7]]
+import stest
+from stest import AbstractTestCase
+from stest import Test as testcase
 
 
-    class Demo1Test(AbstractTestCase):
+def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
 
-        @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
-        def integer_addition_02(self, number_1, number_2, expected):
+    return [[1,2,3], [3,4,7]]
 
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-    if __name__ == '__main__':
-        # Demo1Test.run_test()
-        stest.main()
-    ```
+
+class Demo1Test(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
+    def integer_addition_02(self, number_1, number_2, expected):
+
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+if __name__ == '__main__':
+    # Demo1Test.run_test()
+    stest.main()
+```
 
 ## 快速开始
 
@@ -103,7 +109,7 @@ pip方式安装
     '''
     import os
 
-    from stest import GLOBAL_CONFIG
+    from stest import settings
     from stest import AbstractTestCase
     from stest import Test as testcase
 
@@ -127,9 +133,6 @@ pip方式安装
             return datas
 
     TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
-
-    # 全局配置 配置默认内置参数数据提供者 测试数据文件所在的目录路径
-    # GLOBAL_CONFIG.seven_data_provider_data_file_dir = r'E:\sw'
 
 
     class CalculationTest(AbstractTestCase):
@@ -187,7 +190,7 @@ pip方式安装
         @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
         def integer_subtraction_03(self,testdata):
             """使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-            则会检测GLOBAL_CONFIG.seven_data_provider_data_file_dir 是否设置
+            则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
             ，没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
             """
 
@@ -210,6 +213,21 @@ pip方式安装
 
     ```
 
+## settings.py配置文件
+可以通过命令行参数-sfile指定配置文件路径或者指定查找配置文件的开始目录路径，如果未指定，则框架会自动递归遍历项目目录（根据用例所在目录往外推，第一个非python包的目录即被认定为项目目录）及其子孙目录，查找settings.py配置文件，找到则会在收集用例测试数据之前自动导入该文件。可通过from stest import settings 导入配置对象，然后通过settings对象访问配置文件中的配置字段（字段必须是大写的,如：settings.SCREENSHOT）
+* 框架使用的配置
+    | 字段 | 描述 |
+    | ---- | ---- |
+    | SCREENSHOT | 控制测试失败后是否自动截图 |
+    | ATTACH_SCREENSHOT_TO_REPORT | 控制截图后是否附加到测试报告中，如果附加到报告中，则截图转base64数据附加到报告中 |
+    | SCREENSHOT_SAVE_DIR | 以后将用到的字段，截图存放目录 |
+    | SEVEN_DATA_PROVIDER_DATA_FILE_DIR | 内置参数化数据提供者(SevenDataProvider)读取的测试数据文件所在的目录路径，不设置则自动获取测试用例所在模块的目录路径作为测试数据文件所在的目录路径，内置参数化数据提供者会从该目录路径查找用例测试数据文件 |
+    | TEST_REPORT_DIR | 测试报告存放目录，优先级低于从命令行参数传入的。命令行没有传入以及配置文件没有设置，则获取模块所在的目录作为存放目录，如果测试模块也没有传入，则不生成测试报告 |
+    | TEST_REPORT_NAME | 测试报告名称，优先级低于从命令行参数传入的。命令行没有传入以及配置文件没有设置，则获取模块名称作为报告名，如果连测试模块也没有给，则获取命令行设置的测试任务名作为报告名称，任务名也未设置则用测试开始时间作为报告名称 |
+
+* stestdemo
+    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/project_dirs.png)
+
 ## Test参数说明
 
 | 参数 | 类型 | 描述 |
@@ -221,11 +239,13 @@ pip方式安装
 | groups | 列表 | 方法所属的组的列表|
 | enabled | 布尔值 | 是否启用执行该测试方法 |
 | priority | 整数 | 测试方法的执行优先级，数值越小执行越靠前 |
-| alway_run | 布尔值 | 如果设置为True，不管它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
+| alway_run | 布尔值 | 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
 | description | 字符串 | 测试用例名称 |
 | data_provider | object | 测试方法的参数化数据提供者，默认值是None，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表（当测试方法只有一个参数化时，应返回一维列表，多个参数化时返回二维列表） |
 | data_provider_args | 元祖 | 数据提供者变长位置参数(args) |
 | data_provider_kwargs | 字典 | 数据提供者变长关键字参数(kwargs) |
+| screenshot | 布尔值 | 控制该用例测试失败是否截图，该设置优先级大于配置文件中的截图设置 |
+| attach_screenshot_to_report | 布尔值 | 控制该用例是否附加测试失败的截图到测试报告中，优先级大于配置文件中的截图设置 |
 | last_modifyied_by | 字符串 | 最后修改者 |
 | last_modified_time | 字符串 | 最后一次修改的时间 |
 | enable_default_data_provider | 布尔值 | 是否使用内置数据提供者(SevenDataProvider)，默认值是True，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider) |
@@ -335,7 +355,7 @@ pip方式安装
         >- 测试方法装饰器Test参数data_provider 为None（即未设置数据提供者），默认值是True为None
 
     - 数据文件存放目录
-        通过测试方法装饰器Test参数data_provider_kwargs传入data_file_dir_path，如果没有传入，则会去检查全局配置unittest_seven_helper.GLOBAL_CONFIG.seven_data_provider_data_file_dir是否设置，设置了则取该值作为参数化测试数据文件的查找目录，否则以被装饰的测试方法所在的模块目录作为查找目录
+        stest.settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置，设置了则取该值作为参数化测试数据文件的查找目录，否则以被装饰的测试方法所在的模块目录作为查找目录
         > data_provider_kwargs={'data_file_dir_path':'E:\\mytestdatas'}
 
     - 数据文件名
@@ -366,7 +386,7 @@ class CalculationTest(AbstractTestCase):
         @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
         def integer_subtraction_03(self,testdata):
             """使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-            则会检测GLOBAL_CONFIG.seven_data_provider_data_file_dir 是否设置
+            则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
             ，没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
             """
 
@@ -601,3 +621,834 @@ class CalculationTest(AbstractTestCase):
 
         Demo1Test.run_test()
     ```
+
+## Page object 实现方案
+
+*  web页面、app页面和window应用程序页面封装
+    > 封装的页面类应继承自抽象页面类AbstractPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractPage.Elements（元素类）和AbstractPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性DRIVER_MANAGER指向驱动管理器，WIN_APP_DRIVER_HELPER指向启动和关闭WinAppDriver.exe助手。
+* 微信小程序页面封装
+    > 封装的页面类应继承自抽象页面类AbstractMiniumPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractMiniumPage.Elements（元素类）和AbstractMiniumPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性WECHAT_MANAGER指向驱动管理器
+
+### Web页面示例
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+from stest.testobjs.abstract_page import AbstractPage
+
+
+class LoginPage(AbstractPage):
+    """登录页面"""
+    def init(self):
+        """其实不需要这个，页面会自省的去自动创建元素和动作，这样做只是为了开发工具可以使用.引出相关的元素和动作方法"""
+        cls = self.__class__
+        self.elements = cls.Elements(self)
+        self.actions = cls.Actions(self)
+
+    class Elements(AbstractPage.Elements):
+        @property
+        def username(self):
+
+            name = "用户名"
+            xpath = '//div[@id="app"]//div[@class="loginBox"]//form//label[normalize-space()="{}"]/following-sibling::div//input'.format(name)
+            return self.page.find_element_by_xpath(xpath)
+
+        @property
+        def password(self):
+
+            name = "密码"
+            xpath = '//div[@id="app"]//div[@class="loginBox"]//form//label[normalize-space()="{}"]/following-sibling::div//input'.format(name)
+            return self.page.find_element_by_xpath(xpath)
+
+        @property
+        def login(self):
+
+            name = "登录"
+            xpath = '//div[@id="app"]//div[@class="loginBox"]//form//button//span[normalize-space()="{}"]'.format(name)
+            return self.page.find_element_by_xpath(xpath)
+
+    class Actions(AbstractPage.Actions):
+        def username(self, name):
+
+            self.page.elements.username.clear()
+            self.page.elements.username.send_keys(name)
+            return self
+
+        def password(self, pwd):
+
+            self.page.elements.password.clear()
+            self.page.elements.password.send_keys(pwd)
+            return self
+
+        def login(self):
+
+            self.page.elements.login.click()
+            return self
+
+```
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+import stest
+from stest import settings
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+# 驱动管理器
+from stest.dm import DRIVER_MANAGER
+
+from ..pages.web.login_page import LoginPage
+
+
+class WebLoginPageTest(AbstractTestCase):
+    """ 登录页面测试 """
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='用正确账号密码登录测试')
+    def login_with_right_user_and_password(self, testdata):
+
+        user = testdata.get("用户名")
+        pwd = testdata.get("用户密码")
+        url = settings.URLS.get('登录页面url')
+        LoginPage().chrome(url, executable_path=settings.CHROME_DRIVER_PATH).maximize_window().actions.username(user).sleep(2).password(pwd).login().sleep(7)
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        DRIVER_MANAGER.close_all_drivers()
+
+
+if __name__ == '__main__':
+    # WebLoginPageTest.run_test()
+    stest.main()
+
+```
+### APP页面示例
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+from stest.testobjs.abstract_page import AbstractPage
+
+
+class LoginPage(AbstractPage):
+    """ APP登录页面 """
+    class Elements(AbstractPage.Elements):
+        @property
+        def continue_btn(self):
+            """授权页->继续按钮"""
+
+            xpath = 'UiSelector().resourceId("com.android.permissioncontroller:id/continue_button")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+        @property
+        def confirm_btn(self):
+            """更新提示->确定按钮"""
+
+            xpath = 'UiSelector().resourceId("android:id/button1")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+        @property
+        def username(self):
+            """用户名输入框"""
+
+            xpath = 'UiSelector().resourceId("userName")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+        @property
+        def password(self):
+            """密码输入框"""
+
+            xpath = 'UiSelector().resourceId("password")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+        @property
+        def login(self):
+            """登录按钮"""
+
+            xpath = 'UiSelector().resourceId("submit")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+        @property
+        def reminder(self):
+            """下次提醒"""
+
+            xpath = 'UiSelector().resourceId("android:id/button1")'
+            return self.page.find_element_by_android_uiautomator(xpath)
+
+    class Actions(AbstractPage.Actions):
+        def click_continue_btn(self):
+            self.page.elements.continue_btn.click()
+            return self
+
+        def click_confirm_btn(self):
+            self.page.elements.confirm_btn.click()
+            return self
+
+        def username(self, name):
+            """输入用户名"""
+
+            self.page.elements.username.clear()
+            self.page.elements.username.send_keys(name)
+            return self
+
+        def password(self, pwd):
+            """输入密码"""
+
+            self.page.elements.password.clear()
+            self.page.elements.password.send_keys(pwd)
+            return self
+
+        def login(self):
+            """点击登录按钮"""
+
+            self.page.elements.login.click()
+            return self
+
+        def reminder(self):
+            """下次提醒"""
+
+            self.page.elements.reminder.click()
+            return self
+
+```
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+import stest
+from stest import AbstractTestCase
+from stest import Test as testcase
+from stest.dm import DRIVER_MANAGER
+
+from ..pages.app.login_page import LoginPage
+from ..pages.app.home_page import HomePage
+from ..pages.app.main_page import SettlementMainPage
+
+
+class AppLoginPageTest(AbstractTestCase):
+    """APP登录页面测试"""
+    @classmethod
+    def setUpClass(cls):
+
+        cls.desired_caps = {
+            'platformName': 'Android',  # 平台名称
+            'platformVersion': '10.0',  # 系统版本号
+            'deviceName': 'P10 Plus',  # 设备名称。如果是真机，在'设置->关于手机->设备名称'里查看
+            'appPackage': 'com.ddnapalon.calculator.gp',  # apk的包名
+            'appActivity': 'com.ddnapalon.calculator.gp.ScienceFragment',  # activity 名称
+            # 'automationName': "uiautomator2"
+        }
+        cls.desired_caps["appPackage"] = "com.zgdygf.zygfpfapp"
+        cls.desired_caps["appActivity"] = "io.dcloud.PandoraEntry"
+        cls.server_url = "http://127.0.0.1:4723/wd/hub"
+        # adb shell am start -W -n com.zgdygf.zygfpfapp/io.dcloud.PandoraEntry
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='成功登录测试')
+    def test_successfully_login(self, testdata):
+
+        name = testdata.get("用户名")
+        pwd = testdata.get("密码")
+
+        page = LoginPage()
+        page.open_app(self.server_url, desired_capabilities=self.desired_caps, implicit_wait_timeout=10)
+        page.actions.click_continue_btn().sleep(2).click_confirm_btn().sleep(2).username(name).password(pwd).login().sleep(2).reminder().sleep(21)
+        # HomePage().elements.settlement_tab
+        HomePage().actions.sleep(2).click_settlement_tab()
+        sp = SettlementMainPage()
+        sp.actions.sleep(7).swipe_to_select_year("2019年").sleep(7).input_film_name("单行道").click_search().sleep(3)
+        page.hide_keyboard()
+        sp.actions.click_film_item("单行道")
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        DRIVER_MANAGER.close_all_drivers()
+
+
+if __name__ == "__main__":
+    # AppLoginPageTest.run_test()
+    stest.main()
+
+```
+### 微信小程序页面示例
+```python
+# -*- coding:utf-8 -*-
+
+from stest.testobjs.abstract_minium_page import AbstractMiniumPage
+
+
+class ADBasketPage(AbstractMiniumPage):
+    """ 广告篮页面 """
+    class Elements(AbstractMiniumPage.Elements):
+        @property
+        def do_ad_btn(self):
+            """去投放广告"""
+
+            selector = '#cart'
+            inner_text = '去投放广告'
+            return self.page.get_element(selector).get_element('view').get_element('view').get_element('button', inner_text=inner_text)
+
+        @property
+        def tabbar(self):
+            """首页下方tab工具栏"""
+
+            selector = '.mp-tabbar'
+            return self.page.get_element(selector)
+
+        @property
+        def home_tab(self):
+            """首页 标签"""
+
+            selector = '.weui-tabbar__label'
+            inner_text = "首页"
+            return self.tabbar.get_element(selector, inner_text=inner_text)
+
+        @property
+        def ad_tab(self):
+            """广告篮 标签"""
+
+            selector = '.weui-tabbar__label'
+            inner_text = "广告篮"
+            return self.tabbar.get_element(selector, inner_text=inner_text)
+
+        @property
+        def order_tab(self):
+            """订单 标签"""
+
+            selector = '.weui-tabbar__label'
+            inner_text = "订单"
+            return self.tabbar.get_element(selector, inner_text=inner_text)
+
+        @property
+        def my_tab(self):
+            """我的 标签"""
+
+            selector = '.weui-tabbar__label'
+            inner_text = "我的"
+            return self.tabbar.get_element(selector, inner_text=inner_text)
+
+        @property
+        def _ad_cart(self):
+            """广告购物车"""
+
+            s = 'view>cart#cart'
+            el_cart = self.page.get_element(s)
+            el_cart.click()
+            self.page.sleep(1)
+            return el_cart
+
+        def cinema_checkbox(self, cinema):
+            """影院复选框
+
+            Args:
+                cinema: 影院
+            """
+
+            s1 = 'view.container.car>view.cinema-list>view.backgroud-float>view.flex-row>view.cinema-title'
+            # 影院名
+            s2 = 'text'
+            # 复选框
+            s8 = 'view>image.cart-icon'
+            el_cts = self._ad_cart.get_elements(s1)
+            el_cb = None
+            for el_ct in el_cts:
+                el_cinema = el_ct.get_element(s2)
+                if el_cinema and el_cinema.inner_text == cinema:
+                    el_cb = el_ct.get_element(s8)
+                    if el_cb:
+                        break
+            return el_cb
+
+        @property
+        def all_schedules(self):
+            """所有影院排期, 未调试，误用
+
+            Args:
+                cinema: 影院
+            """
+
+            s1 = 'view.container.car>view.cinema-list>view.backgroud-float'
+            # 影院名
+            s2 = 'view.flex-row>view.cinema-title>text.cinema-Name'
+            # 放映日期
+            s3 = 'view.cart--cinema-time'
+            # 排期列表
+            s4 = 'view.cart--cart-goods'
+            # 影片名称
+            s5 = 'view.cart-img>view.cart-message>view.name>text.filmName'
+            # 放映时间
+            s6 = 'view.cart-img>view.cart-message>view.common-flex>text.playTime'
+            # 影厅
+            s7 = 'view.cart-img>view.cart-message>view.common-flex>text.filmType'
+
+            el_cinemaboxs = self._ad_cart.get_elements(s1)
+            schedules = {}
+            # {
+            # 'el_cinema': {
+            # 'el_showdate': [
+            # (el_film, el_showtime, el_hall),...
+            # ]
+            # }
+            # }
+            for el_cinemabox in el_cinemaboxs:
+                el_cinema = el_cinemabox.get_element(s2)
+                if el_cinema:
+                    cinema_schedules = {}  # 影院排期
+                    el_cart_boxes = el_cinemabox.get_elements('view>view.cart--cart-box')
+                    for el_cart_box in el_cart_boxes:
+                        el_showdate = el_cinemabox.get_element(s3)
+                        if not el_showdate:
+                            continue
+                        el_cart_goods = el_cart_box.get_element(s4)
+                        one_day_schedules = []
+                        for el_cart_good in el_cart_goods:
+                            el_film = el_cart_good.get_element(s5)
+                            el_showtime = el_cart_good.get_element(s6)
+                            el_hall = el_cart_good.get_element(s7)
+                            if el_film and el_showtime and el_hall:
+                                one_day_schedules.append((el_film, el_showtime, el_hall))
+                        cinema_schedules[el_showdate] = one_day_schedules
+                    schedules[el_cinema] = cinema_schedules
+            return schedules
+
+        def schedule_checkbox(self, cinema, film, hall, showdate, showtime):
+            """排期复选框
+
+            Args:
+                film: 影片
+                cinema: 影院
+                hall: 影厅
+                showdate: 放映日期
+                showtime: 放映时间
+            """
+
+            s1 = 'view.container.car>view.cinema-list>view.backgroud-float'
+            # 影院名
+            s2 = 'view.flex-row>view.cinema-title>text'
+            # 放映日期
+            s3 = 'view>view.cart--cart-box>view.cart--cinema-time'
+            # 排期列表
+            s4 = 'view>view.cart--cart-box>view.cart--cart-goods'
+            # 影片名称
+            s5 = 'view.cart-img>view.cart-message>view.name>text'
+            # 放映时间
+            s6 = 'view.cart-img>view.cart-message>view.common-flex>text'
+            # 影厅
+            s7 = 'view.cart-img>view.cart-message>view.common-flex>text'
+            # 复选框
+            s8 = 'view>image'
+            el_cinemaboxs = self._ad_cart.get_elements(s1)
+            el_cb = None
+            for el_cinemabox in el_cinemaboxs:
+                el_cinema = el_cinemabox.get_element(s2, inner_text=cinema)
+                if el_cinema:
+                    el_showdate = el_cinemabox.get_element(s3, inner_text=showdate)
+                    if el_cinema and el_showdate:
+                        el_goods = el_cinemabox.get_elements(s4)
+                        for el_good in el_goods:
+
+                            el_film = el_good.get_element(s5, inner_text=film)
+                            el_showtime = el_good.get_element(s6, inner_text=showtime)
+                            el_halls = el_good.get_elements(s7)
+                            el_rhall = None
+                            for el_hall in el_halls:
+                                if el_hall.inner_text.strip().startswith(hall):
+                                    el_rhall = el_hall
+                                    break
+
+                            if el_film and el_showtime and el_rhall:
+                                el_cb = el_good.get_element(s8)
+                                if el_cb:
+                                    break
+                if el_cb:
+                    break
+            return el_cb
+
+        @property
+        def select_all_btn(self):
+            """全选按钮"""
+
+            inner_text = '全选'
+            s = 'view.container.car>view.cart-bottom>view.car-pay>view.cart-bottom-select>text'
+            return self._ad_cart.get_element(s, inner_text=inner_text)
+
+        @property
+        def org_price(self):
+            """原价结算金额"""
+
+            inner_text = '原价结算'
+            s1 = 'view.container.car>view.cart-bottom>view.car-pay>view.cart-bottom-pay>view.cart-btn'
+            s2 = 'view'
+
+            el_p_btn = None
+            el_btns = self._ad_cart.get_elements(s1)
+            for el_btn in el_btns:
+                el_yj = el_btn.get_element(s2, inner_text=inner_text)
+                if el_yj:
+                    el_views = el_btn.get_elements(s2)
+                    el_p_btn = el_views[0]
+            return el_p_btn
+
+        @property
+        def org_price_btn(self):
+            """原价结算按钮"""
+
+            inner_text = '原价结算'
+            s = 'view.container.car>view.cart-bottom>view.car-pay>view.cart-bottom-pay>view.cart-btn>view'
+            return self._ad_cart.get_element(s, inner_text=inner_text)
+
+        @property
+        def pt_price(self):
+            """拼团结算金额"""
+
+            inner_text = '拼团结算'
+            s1 = 'view.container.car>view.cart-bottom>view.car-pay>view.cart-bottom-pay>view.cart-btn'
+            s2 = 'view'
+
+            el_p_btn = None
+            el_btns = self._ad_cart.get_elements(s1)
+            for el_btn in el_btns:
+                el_yj = el_btn.get_element(s2, inner_text=inner_text)
+                if el_yj:
+                    el_views = el_btn.get_elements(s2)
+                    el_p_btn = el_views[0]
+            return el_p_btn
+
+        @property
+        def pt_price_btn(self):
+            """拼团结算按钮"""
+
+            inner_text = '拼团结算'
+            s = 'view.container.car>view.cart-bottom>view.car-pay>view.cart-bottom-pay>view.cart-btn>view'
+            return self._ad_cart.get_element(s, inner_text=inner_text)
+
+    class Actions(AbstractMiniumPage.Actions):
+        def click_do_ad_btn(self):
+            """点击去投放广告按钮"""
+
+            self.page.elements.do_ad_btn.click()
+            return self
+
+        def click_tabbar(self):
+            """点击下方标签工具栏"""
+
+            self.page.elements.tabbar.click()
+            return self
+
+        def click_home_tab(self):
+            """点击下方首页标签"""
+
+            self.page.elements.home_tab.click()
+            return self
+
+        def click_ad_tab(self):
+            """点击下方广告篮标签"""
+
+            self.page.elements.ad_tab.click()
+            return self
+
+        def click_order_tab(self):
+            """点击下方订单标签"""
+
+            self.page.elements.order_tab.click()
+            return self
+
+        def click_my_tab(self):
+            """点击下方我的标签"""
+
+            self.page.elements.my_tab.click()
+            return self
+
+        def click_cinema_checkbox(self, cinema):
+            """点击 影院复选框"""
+
+            self.page.elements.cinema_checkbox(cinema).click()
+            return self
+
+        def click_schedule_checkbox(self, cinema, film, hall, showdate, showtime):
+            """点击 排期复选框"""
+
+            self.page.elements.schedule_checkbox(cinema, film, hall, showdate, showtime).click()
+            return self
+
+        def select_all(self):
+            """点击全选按钮"""
+
+            self.page.elements.select_all_btn.click()
+            return self
+
+        def org_price_equals(self, price, prefix='￥'):
+            """检查原价结算金额是否正确"""
+
+            ptext = self.page.elements.org_price.inner_text
+            a_price = ptext.strip().lstrip(prefix)
+            if a_price != price:
+                self.page.fail('原价结算金额实际({})显示与预期({})不等'.format(a_price, price))
+            return self
+
+        def click_org_price(self):
+            """点击原价结算按钮"""
+
+            self.page.elements.org_price_btn.click()
+            return self
+
+        def pt_price_equals(self, price, prefix='￥'):
+            """检查拼团结算金额是否正确"""
+
+            ptext = self.page.elements.pt_price.inner_text
+            a_price = ptext.strip().lstrip(prefix)
+            if a_price != price:
+                self.page.fail('拼团结算金额实际({})显示与预期({})不等'.format(a_price, price))
+            return self
+
+        def click_pt_price(self):
+            """点击拼团结算按钮"""
+
+            self.page.elements.pt_price_btn.click()
+            return self
+
+```
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+import datetime
+
+import stest
+from stest import AbstractTestCase
+from stest import Test as testcase
+from stest.dm import DRIVER_MANAGER
+
+from ..pages.wechat_mini.ad_basket_page import ADBasketPage
+from ..pages.wechat_mini.index_page import IndexPage
+from ..pages.wechat_mini.my_adlist_page import MyAdListPage
+from ..pages.wechat_mini.cinema_list_page import CinemaListPage
+from ..pages.wechat_mini.cinema_detail_page import CinemaDetailPage
+
+
+class WechatMiniPageTest(AbstractTestCase):
+    """微信小程序页面示例"""
+    @classmethod
+    def setUpClass(cls):
+
+        cls.minium_config = {
+            "platform": "ide",
+            "debug_mode": "info",
+            "close_ide": False,
+            "no_assert_capture": False,
+            "auto_relaunch": False,
+            "device_desire": {},
+            "report_usage": True,
+            "remote_connect_timeout": 180,
+            "use_push": True
+        }
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, author='思文伟', description='广告投放界面->广告视频显示的正确性 - 影院列表>加入广告栏')
+    def test_add_ad_to_ad_basket_in_cinemalist(self, testdata):
+
+        ad_name = testdata.get('广告名')
+        cinema = testdata.get('影院名称')
+        film = testdata.get('影片名称')
+        hall = testdata.get('影厅名称')
+        showdate = testdata.get('放映日期')
+        showtime = testdata.get('放映时间')
+        showdate_fmt = testdata.get('放映日期格式', '%Y-%m-%d')
+
+        month_day = datetime.datetime.strptime(showdate, showdate_fmt).strftime('%m-%d')
+        ipage = IndexPage('/pages/index/index', minium_config=self.minium_config)
+        ipage.actions.click_tabbar().sleep(1).click_home_tab().sleep(1)
+        ipage.actions.click_cinema_ad_btn()
+
+        clpage = CinemaListPage()
+        clpage.actions.sleep(1).is_page_self('/pages/cinema/cinema')
+        clpage.actions.upload_ad().sleep(2)
+
+        p = MyAdListPage()
+        p.actions.is_page_self().click_ad_checkbox(ad_name).sleep(1).to_launch().sleep(2)
+        clpage.actions.click_cinema_item(cinema).sleep(1)
+
+        cdp = CinemaDetailPage()
+        cdp.actions.click_film(film).select_day(month_day).sleep(1).click_schedule(film, hall, showtime).sleep(1).confirm().sleep(2)
+        clpage.actions.join_to_ad_basket().sleep(1).shopping_basket().sleep(1)
+
+        bp = ADBasketPage()
+        bp.actions.click_schedule_checkbox(cinema, film, hall, showdate, showtime)
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        DRIVER_MANAGER.close_all_drivers()
+
+
+if __name__ == "__main__":
+    # WechatMiniPageTest.run_test()
+    stest.main()
+
+```
+### window应用程序页面示例
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+from stest.testobjs.abstract_page import AbstractPage
+
+
+class VNCViewerPage(AbstractPage):
+    """VNCViewer页面"""
+    def init(self):
+        """其实不需要这个，页面会自省的去自动创建元素和动作，这样做只是为了开发工具可以使用.引出相关的元素和动作方法"""
+        cls = self.__class__
+        self.elements = cls.Elements(self)
+        self.actions = cls.Actions(self)
+
+    class Elements(AbstractPage.Elements):
+        @property
+        def server_ip(self):
+            """ip地址输入框"""
+
+            return self.page.find_element_by_accessibility_id('1001')
+
+        @property
+        def ok(self):
+            """ok按钮"""
+
+            return self.page.find_element_by_name("OK")
+
+        @property
+        def pwd(self):
+            """密码输入框"""
+
+            locator = "./*"
+            childrens = self.page.find_elements_by_xpath(locator)  # 获取当前窗口下的所有子元素
+            element = None
+            for c in childrens:
+                # print("c.get_attribute("IsEnabled")=", c.get_attribute("IsEnabled"))
+                if c.get_attribute("IsEnabled") == "true":  # 通过界面我们知道 只有输入密码框是可编辑的，所以使用该条件来判断是否密码输入框元素
+                    element = c
+                    break
+            if element is None:
+                message = "{} with locator '{}' not found.".format("xpath", locator)
+                self.page.raise_no_such_element_exc(message)
+            return element
+
+    class Actions(AbstractPage.Actions):
+        def server_ip(self, ip):
+            """输入ip"""
+
+            element = self.page.elements.server_ip
+            element.clear()
+            element.send_keys(ip)
+            return self
+
+        def ok(self):
+            """点击ok按钮"""
+
+            self.page.elements.ok.click()
+            return self
+
+        def pwd(self, password):
+
+            element = self.page.elements.pwd
+            element.clear()
+            element.send_keys(password)
+            return self
+
+```
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+
+import stest
+# from stest import settings
+from stest import AbstractTestCase
+from stest import Test as testcase
+from stest.dm import DRIVER_MANAGER
+from stest.dm import WIN_APP_DRIVER_HELPER
+
+from ..pages.winapp.vncviewer_page import VNCViewerPage
+
+
+class VNCViewerPageTest(AbstractTestCase):
+    """ 使用WinAppDriver.exe测试Window应用程序VNCViewer示例 """
+    @classmethod
+    def setUpClass(cls):
+
+        WIN_APP_DRIVER_HELPER.startup_winappdriver(r"E:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe")
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='用正确账号密码登录测试')
+    def connect_remote_pc_desktop(self, testdata):
+
+        ip = testdata.get("远程桌面登录账户")
+        pwd = testdata.get("远程桌面登录密码")
+        vnc_title = "VNC Viewer : Authentication [No Encryption]"
+        desired_capabilities = {}
+        desired_capabilities["app"] = r"C:\Users\siwenwei\Desktop\vnc-4_1_2-x86_win32_viewer.exe"  # vnc viewer 的执行路径
+        server_url = "http://127.0.0.1:4723"
+        page = VNCViewerPage()
+        page.open_window_app(server_url, desired_capabilities)
+
+        page.actions.sleep(5).server_ip(ip).sleep(1).ok()
+        # 上面点击ok后，到下一个界面显示出来需要时间，所以这里设置延时等待
+        page.switch_window_by_title(vnc_title, timeout=20).actions.pwd(pwd).sleep(2).ok()
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        DRIVER_MANAGER.close_all_drivers()
+        WIN_APP_DRIVER_HELPER.shutdown_winappdriver()
+
+
+if __name__ == '__main__':
+    # VNCViewerPageTest.run_test()
+    stest.main()
+
+```

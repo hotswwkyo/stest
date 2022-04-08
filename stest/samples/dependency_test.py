@@ -6,7 +6,7 @@
 '''
 import os
 import stest
-# from stest import GLOBAL_CONFIG
+# from stest import settings
 from stest import AbstractTestCase
 from stest import Test as testcase
 
@@ -26,9 +26,6 @@ class DataProvider02(object):
 
 
 TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
-
-# 全局配置 配置默认内置参数数据提供者 测试数据文件所在的目录路径
-# GLOBAL_CONFIG.seven_data_provider_data_file_dir = r'E:\sw'
 
 
 class DependTest(AbstractTestCase):

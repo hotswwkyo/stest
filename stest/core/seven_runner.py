@@ -6,6 +6,7 @@
 '''
 from unittest.suite import TestSuite
 from unittest.runner import TextTestRunner
+from ..const import Const
 from .depends import DependsManager
 from .seven_result import SevenTestResult
 
@@ -38,7 +39,7 @@ class SevenTestRunner(TextTestRunner):
             alltests = []
             if _issuite(tc):
                 for one in tc:
-                    if not _issuite(tc):
+                    if not _issuite(one):
                         alltests.append(one)
                     else:
                         alltests.extend(all_in_one(one))
@@ -46,7 +47,13 @@ class SevenTestRunner(TextTestRunner):
                 alltests.append(tc)
             return alltests
 
+        def set_exec_number_to_testcase(testcases):
+
+            for i, t in enumerate(testcases):
+                setattr(t, Const.STEST_TESTCASE_EXEC_NUMBER, i + 1)
+
         testlist = all_in_one(test)
         self.depend_manager.tests = testlist
         suite = self.depend_manager.sorted_tests(suiteclass=TestSuite)
+        set_exec_number_to_testcase(suite)
         return super().run(suite)

@@ -9,7 +9,7 @@ import inspect
 import functools
 import collections.abc as collections
 
-from .global_config import GLOBAL_CONFIG
+from ..conf import settings as SETTINGS
 from .abstract_data_provider import AbsractDataProvider
 from .seven_data_provider import SevenDataProvider
 
@@ -46,6 +46,8 @@ class Test(object):
 
             data_provider_args: 数据提供者变长位置参数(args)
             data_provider_kwargs: 数据提供者变长关键字参数(kwargs)
+            screenshot: 测试失败是否截图，如果不传该参数，则取全局配置的设置
+            attach_screenshot_to_report: 是否附加测试失败的截图到测试报告中，如果不传该参数，则取全局配置的设置
             last_modifyied_by: 最后修改者
             last_modified_time: 最后一次修改的时间
             enable_default_data_provider: 是否使用内置数据提供者(SevenDataProvider)，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider)
@@ -74,6 +76,8 @@ class Test(object):
     DATA_PROVIDER_KWARGS = 'data_provider_kwargs'
     LAST_MODIFYIED_BY = 'last_modifyied_by'
     LAST_MODIFYIED_TIME = 'last_modified_time'
+    SCREENSHOT = "screenshot"
+    ATTACH_SCREENSHOT_TO_REPORT = "attach_screenshot_to_report"
     ENABLE_DEFAULT_DATA_PROVIDER = 'enable_default_data_provider'
 
     _FINAL_ENABLE_DEFAULT_DATA_PROVIDER = '_final_enable_default_data_provider'
@@ -172,8 +176,8 @@ class Test(object):
                 # 如果没有设置测试数据文件所在的目录路径，则到全局配置去找
                 # 全局配置里，也没有设置，则自动获取测试方法所在的模块的目录作为测试数据文件的查找目录
                 if not dp_kwargs.get(SevenDataProvider.PARAM_DATA_FILE_DIR_PATH, None):
-                    if GLOBAL_CONFIG.seven_data_provider_data_file_dir:
-                        dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = GLOBAL_CONFIG.seven_data_provider_data_file_dir
+                    if SETTINGS.SEVEN_DATA_PROVIDER_DATA_FILE_DIR:
+                        dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = SETTINGS.SEVEN_DATA_PROVIDER_DATA_FILE_DIR
                     else:
                         dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = self.get_testmethod_file_dirpath(testmethod)
 

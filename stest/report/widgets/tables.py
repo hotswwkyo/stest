@@ -164,6 +164,7 @@ class ReportTable(elements.Table):
     TESTSTEP_ID_PREFIX = "teststep_"
     TESTSTEP_TABLE_CONTAINER_CSS_CLASS = "seven-table-container"
 
+    SCREENSHOT_OF_TEST_FAILURE = "screenshot-of-test-failure"
     TESTCASE_SHOW_INFO_LAYER = 'testcase-show-info-layer'
 
     def __init__(self, testpoints=[]):
@@ -199,12 +200,26 @@ class ReportTable(elements.Table):
         self.thead.append_child(tr)
         return self
 
-    def __build_arg_area(self, arguments_dict, label=""):
+    def __build_params_area(self, arguments_dict, label="", param_type="args"):
+        """构建参数显示区域
 
-        box = elements.Div()
-        showview = elements.Div()
-        # box.append_child(elements.P(label), elements.HR(), showview)
-        box.append_child(elements.P(label).set_attr("style", "margin-top: 21px;"), showview)
+        Args:
+            - arguments_dict: 参数字典
+            - param_type: 参数类型 args - 位置参数      kwargs - 关键字参数
+            - label: 区域标签名
+        """
+
+        el_fs, el_item, el_title, el_content = self.__build_fieldset()
+        el_title_name = elements.Span(label)
+        el_title.append_child(el_title_name)
+        if param_type == "args":
+            el_title_name.add_css_class("seven-testcase-args")
+        elif param_type == "kwargs":
+            el_title_name.add_css_class("seven-testcase-kwargs")
+        else:
+            # 无效类型则什么都不做，也不抛异常
+            return
+
         for k, v in arguments_dict.items():
             fs = elements.Fieldset(k)
             styles = ["border-top-style: solid; border-top-width: 1px; border-left: none; border-right: none; border-bottom: none;"]
@@ -213,14 +228,118 @@ class ReportTable(elements.Table):
             styles.append("margin-right: 7px;")
             fs.set_attr("style", "".join(styles))
             fs.append_child(elements.Pre(v).set_attr("style", "padding-left: 21px; padding-right: 21px;"))
-            showview.append_child(fs)
-        return box
+            el_content.append_child(fs)
+        return el_fs
+
+    def __build_extra_info_area(self, extra_info, label=""):
+
+        namemaps = {
+            "author": "编写者",
+            "editors": "修改者",
+            "last_modifyied_by": "最后修改者",
+            "last_modified_time": "最近修改时间",
+        }
+
+        el_fs, el_item, el_title, el_content = self.__build_fieldset()
+        el_title_name = elements.Span(label)
+        el_title.append_child(el_title_name)
+        el_item.add_css_class("seven-fieldset-item-hidden")
+        el_title_name.add_css_class("seven-testcase-extra-info")
+
+        for k, v in extra_info.items():
+            if not v:
+                continue
+            v = ",".join(v) if isinstance(v, (list, tuple)) else v
+            el_dl, el_dt, el_dd = self.__build_seven_dl(namemaps.get(k, k), elements.Pre(v))
+
+            el_content.append_child(el_dl)
+        return el_fs
+
+    def __build_fieldset(self):
+
+        el_fs = elements.Div()
+        el_item = elements.Div()
+        el_title = elements.Div()
+        el_content = elements.Div()
+
+        el_fs.append_child(el_item)
+        el_item.append_child(el_title)
+        el_item.append_child(el_content)
+
+        el_fs.add_css_class("seven-fieldset")
+        el_item.add_css_class("seven-fieldset-item")
+        el_title.add_css_class("seven-fieldset-title")
+        el_content.add_css_class("seven-fieldset-content")
+
+        return (el_fs, el_item, el_title, el_content)
+
+    def __build_seven_dl(self, dt_val, dd_val, is_block=True):
+
+        el_dl = elements.DL()
+        el_dt = elements.DT()
+        el_dd = elements.DD()
+
+        el_dl.append_child(el_dt).append_child(el_dd)
+
+        el_dl.add_css_class("seven-dl")
+        el_dt.add_css_class("seven-dt")
+        el_dd.add_css_class("seven-dd")
+
+        if is_block:
+            el_dl.add_css_class("seven-block")
+
+        if isinstance(dt_val, elements.HtmlElement):
+            el_dt.append_child(dt_val)
+        else:
+            el_dt.text = dt_val
+
+        if isinstance(dd_val, elements.HtmlElement):
+            el_dd.append_child(dd_val)
+        else:
+            el_dd.text = dd_val
+
+        return (el_dl, el_dt, el_dd)
+
+    def __build_screenshot_area(self, screenshot_info, label="截图"):
+
+        el_fs, el_item, el_title, el_content = self.__build_fieldset()
+        el_title_name = elements.Span(label)
+
+        el_title.append_child(el_title_name)
+        el_item.add_css_class("seven-fieldset-item-hidden")
+        el_title_name.add_css_class("seven-testcase-screenshots")
+
+        screenshot = screenshot_info.get('screenshot', False)
+        attach_screenshot_to_report = screenshot_info.get('attach_screenshot_to_report', False)
+        if screenshot and attach_screenshot_to_report:
+            if screenshot_info.get("result", False):
+                src = "data:image/png;base64,{}".format(screenshot_info.get("base64data", ""))
+                showview = elements.Img().set_attr("onclick", 'show_image_on_new_window(this)').set_attr("src", src)
+            else:
+                showview = elements.Pre(screenshot_info.get("message", ""))
+            showview.add_css_class(self.SCREENSHOT_OF_TEST_FAILURE)
+            el_content.append_child(showview)
+        return el_fs
+
+    def __build_message_area(self, message_list, label="控制台信息"):
+
+        el_fs, el_item, el_title, el_content = self.__build_fieldset()
+        el_title_name = elements.Span(label)
+
+        el_title.append_child(el_title_name)
+        el_title_name.add_css_class("seven-testcase-traceback")
+
+        outputmsg = '\n'.join(message_list) if message_list else ''
+        el_content.append_child(elements.Pre(outputmsg))
+        return el_fs
 
     def _build_console_row(self, testcase_html_id, teststep_zone_html_id, testcase):
-        """构建输出消息区域行"""
+        """构建输出控制台区域行"""
 
         message = [testcase["output_message"], testcase["error_message"]]
         testdatas = testcase['testdatas']
+        screenshot_info = testcase["screenshot_info"]
+        attach_screenshot_to_report = screenshot_info.get('attach_screenshot_to_report', False)
         args, kwargs = testdatas
         nargs = {}
         for k, v in args.items():
@@ -228,17 +347,19 @@ class ReportTable(elements.Table):
             nargs[name] = v[1]
 
         row = elements.TR().set_attr("id", teststep_zone_html_id).add_css_class(self.TESTSTEPS_ZONE_ROW_CSS_CLASS)
-        cell = elements.TD().set_attr("colspan", len(self.header_titles)).add_css_class(self.TESTSTEP_TABLE_CONTAINER_CSS_CLASS)
-        div = elements.Div()
-        outputmsg = '\n'.join(message) if message else ''
-        div.append_child(elements.Pre(outputmsg))
+        colspan = len(self.header_titles)
+        cell = elements.TD().set_attr("colspan", colspan).add_css_class(self.TESTSTEP_TABLE_CONTAINER_CSS_CLASS)
         show_div = elements.Div()
         show_div.add_css_class(self.TESTCASE_SHOW_INFO_LAYER)
         if nargs:
-            show_div.append_child(self.__build_arg_area(nargs, label="位置参数"))
+            show_div.append_child(self.__build_params_area(nargs, label="位置参数", param_type="args"))
         if kwargs:
-            show_div.append_child(self.__build_arg_area(kwargs, label="关键字参数"))
-        show_div.append_child(div)
+            show_div.append_child(self.__build_params_area(kwargs, label="关键字参数", param_type="kwargs"))
+        if message[0] or message[1]:
+            show_div.append_child(self.__build_message_area(message))
+        show_div.append_child(self.__build_extra_info_area(testcase["extra_info"], label="基本信息"))
+        if attach_screenshot_to_report:
+            show_div.append_child(self.__build_screenshot_area(screenshot_info, label="截图"))
         cell.append_child(show_div)
         row.append_child(cell)
         return row
@@ -262,8 +383,12 @@ class ReportTable(elements.Table):
             result_cell = elements.TD(tc["result"]["name"])
             result_cell.add_css_class(self.TESTCASE_RESULT_COL_CSS_CLASS, tc["result"]["css_class"])
             # result_cell.set_attr("style", "cursor: pointer;")
+            duration = tc["duration"]
+            timecell = elements.TD('{}秒'.format(duration) if duration else '')
+            preceding_siblings.append(timecell)
             result_cell.set_attr("colspan", len(self.header_titles) - len(preceding_siblings))
             row.append_child(result_cell)
+            row.append_child(timecell)
             row.after(self._build_console_row(tc_html_id, teststep_zone_html_id, tc))
             rows.append(row)
         return rows

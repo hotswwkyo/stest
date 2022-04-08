@@ -6,8 +6,8 @@
 '''
 import inspect
 import collections
-from .attrs_manager import AttributeManager
-from .attrs_marker import ConstAttributeMarker
+from ..utils.attrs_manager import AttributeManager
+from ..utils.attrs_marker import ConstAttributeMarker
 
 
 class TestCaseWrapper(AttributeManager):

@@ -5,7 +5,7 @@
 @Date: 2021/04/22 18:06:23
 '''
 
-from .errors import ConstAttributeException
+from ..core.errors import ConstAttributeException
 from .attrs_marker import AttributeMarker
 
 

@@ -6,7 +6,7 @@
 '''
 import os
 import stest
-# from stest import GLOBAL_CONFIG
+# from stest import settings
 from stest import AbstractTestCase
 from stest import Test as testcase
 
@@ -14,7 +14,7 @@ from stest import Test as testcase
 class DataProvider01(object):
     def get_testdatas(self, testclass, testmethod, *args, **kwargs):
 
-        datas = [{'加数1': 1, '加数2': 2, '预期': 3}, {'加数1': 4, '加数2': 5, '预期': 9}]
+        datas = [{'加数1': 1, '加数2': 2, '预期': 5}, {'加数1': 4, '加数2': 5, '预期': 9}]
         return datas
 
 
@@ -27,9 +27,6 @@ class DataProvider02(object):
 
 TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
 
-# 全局配置 配置默认内置参数数据提供者 测试数据文件所在的目录路径
-# GLOBAL_CONFIG.seven_data_provider_data_file_dir = r'E:\sw'
-
 
 class CalculationTest(AbstractTestCase):
     """数学运算测试"""
@@ -40,7 +37,7 @@ class CalculationTest(AbstractTestCase):
     def setUp(self):
         pass
 
-    @testcase(priority=1, enabled=True, data_provider=DataProvider01().get_testdatas, author='思文伟', description='整数加法测试01')
+    @testcase(priority=1, enabled=True, screenshot=True, attach_screenshot_to_report=True, data_provider=DataProvider01().get_testdatas, author='思文伟', description='整数加法测试01')
     def integer_addition_01(self, testdata):
         """自定义数据提供者 - 测试方法一个参数化示例"""
 
@@ -86,7 +83,7 @@ class CalculationTest(AbstractTestCase):
     @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
     def integer_subtraction_03(self, testdata):
         """使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-        则会检测GLOBAL_CONFIG.seven_data_provider_data_file_dir 是否设置
+        则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
         ，没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
         """
 

@@ -6,7 +6,7 @@
 
 import sys
 import xlrd
-from . import utils
+from ..utils import sutils
 from .attrs_marker import ConstAttributeMarker
 from .attrs_manager import AttributeManager
 import io
@@ -194,8 +194,8 @@ class TestCaseExcelFileReader(AttributeManager):
 
         self.filepath = filepath
         self.testcase_block_separators = testcase_block_separators if (isinstance(testcase_block_separators, str) and testcase_block_separators) else self.DEFAULT_TESTCASE_BLOCK_SEPARATORS
-        self.testcase_block_separators_column_index = testcase_block_separators_column_index if utils.is_positive_integer(testcase_block_separators_column_index) else 0
-        self.sheet_index_or_name = sheet_index_or_name if utils.is_positive_integer(sheet_index_or_name) else self.DEFAULT_SHEET_INDEX
+        self.testcase_block_separators_column_index = testcase_block_separators_column_index if sutils.is_positive_integer(testcase_block_separators_column_index) else 0
+        self.sheet_index_or_name = sheet_index_or_name if sutils.is_positive_integer(sheet_index_or_name) else self.DEFAULT_SHEET_INDEX
 
         self.open()
         self.select_sheet(self.sheet_index_or_name)

@@ -83,12 +83,20 @@ seven.fieldset = function (settings) {
 		show: "",
 		hidden: "",
 	};
+	this.defaultHiddenCSS = "seven-fieldset-item-hidden";
 	var icon_key = "icon";
 	if (settings !== undefined && $.isPlainObject(settings) && settings.hasOwnProperty(icon_key)) {
-		var klassName = settings[icon_key];
-		if (seven.isString(klassName)) {
-			this.iconKlass.show = klassName;
-			this.iconKlass.hidden = klassName;
+		var icon = settings[icon_key];
+		if ($.isPlainObject(icon)) {
+			if (icon.hasOwnProperty("show")) {
+				this.iconKlass.show = icon.show;
+			}
+			if (icon.hasOwnProperty("hidden")) {
+				this.iconKlass.show = icon.hidden;
+			}
+		} else if (seven.isString(icon)) {
+			this.iconKlass.show = icon;
+			this.iconKlass.hidden = icon;
 		}
 	}
 };
@@ -115,10 +123,34 @@ seven.fieldset.prototype.init = function (fieldsetFilter, afterHandlers) {
 
 	this.addIcon();
 	this.toggle("click");
-
+	this.defaultHidden();
 	if ($.isFunction(afterHandlers)) {
 		afterHandlers.call(this);
 	}
+};
+
+seven.fieldset.prototype.defaultHidden = function (e) {
+	var t = this;
+	var n = seven.dot + this.klass;
+	var s = seven.dot + this.itemKlass;
+	var i = seven.dot + this.titleKlass;
+	var r = seven.dot + this.contentKlass;
+	var a = this.defaultHiddenCSS;
+	var o = null;
+	if (typeof e !== undefined && seven.isJqueryObject(e)) {
+		o = e
+	} else {
+		var l = $(n);
+		o = l.children(s).filter(seven.dot + a)
+	}
+	o.each(function () {
+		var e = $(this).children(i).children(seven.dot + seven.iconfont).first().filter(function () {
+			var e = $(this);
+			return e.hasClass(t.iconKlass.show) || e.hasClass(t.iconKlass.hidden)
+		});
+		e.removeClass(t.iconKlass.show).addClass(t.iconKlass.hidden);
+		$(this).children(r).hide()
+	})
 };
 
 seven.fieldset.prototype.buildSelf = function () {
@@ -391,8 +423,46 @@ function toggleTestStepsDetails(teststep_details_row_id) {
 	ts_container_row.style.display = display
 }
 
+function show_image_on_new_window(el_img) {
+	var w = window.open();
+	var img = w.document.createElement('img');
+	img.src = el_img.src;
+	w.document.body.innerHTML = img.outerHTML;
+	w.document.body.ondblclick = function () {
+		w.close()
+	};
+}
+
 $(document).ready(function () {
 
-	sf = new seven.fieldset();
-	sf.init();
+	fs_args = new seven.fieldset({
+		icon: "seven-icon-var-circle"
+	});
+	fs_args.init(function () {
+		return ($(this).children(fs_args.itemSelector).children(fs_args.titleSelector).children('.seven-testcase-args').length > 0);
+	});
+	fs_kwargs = new seven.fieldset({
+		icon: "seven-icon-var-circle"
+	});
+	fs_kwargs.init(function () {
+		return ($(this).children(fs_args.itemSelector).children(fs_args.titleSelector).children('.seven-testcase-kwargs').length > 0);
+	});
+	fs_traceback = new seven.fieldset({
+		icon: "seven-icon-var"
+	});
+	fs_traceback.init(function () {
+		return ($(this).children(fs_args.itemSelector).children(fs_args.titleSelector).children('.seven-testcase-traceback').length > 0);
+	});
+	fs_extra_info = new seven.fieldset({
+		icon: "seven-icon-tips"
+	});
+	fs_extra_info.init(function () {
+		return ($(this).children(fs_args.itemSelector).children(fs_args.titleSelector).children('.seven-testcase-extra-info').length > 0);
+	});
+	fs_screenshot = new seven.fieldset({
+		icon: "seven-icon-step"
+	});
+	fs_screenshot.init(function () {
+		return ($(this).children(fs_args.itemSelector).children(fs_args.titleSelector).children('.seven-testcase-screenshots').length > 0);
+	});
 });

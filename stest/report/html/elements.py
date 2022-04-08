@@ -289,6 +289,11 @@ class Meta(HtmlEmptyElement):
         super().__init__(Tags.meta)
 
 
+class Img(HtmlEmptyElement):
+    def __init__(self):
+        super().__init__(Tags.img)
+
+
 class Style(HtmlNormalElement):
     def __init__(self, text=""):
         super().__init__(Tags.style, text)
