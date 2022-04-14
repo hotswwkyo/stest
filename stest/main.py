@@ -52,6 +52,7 @@ class SevenTestProgram(unittest.TestProgram):
     def _initArgParsers(self):
 
         super()._initArgParsers()
+        self._main_parser.add_argument('-g', '--group', dest='groups', action='append', help="Only run tests which belong to the given groups")
         self._main_parser.add_argument('-sfile', '--settings-file', dest='settings_file', help="dir path or file path of settings")
         self._main_parser.add_argument('-html', '--html-report', dest='html', help="html report file full path")
         self._main_parser.add_argument('-title', '--report-title', dest='title', default="", help="html report title")
@@ -61,6 +62,7 @@ class SevenTestProgram(unittest.TestProgram):
         self._main_parser.add_argument('-taskinfo', '--task-info', dest='task_description', default="", help="task description")
         self._main_parser.add_argument('-junit_xml', '--jenkins_junit_xml', dest='jenkins_junit_xml', help="xml report full path,junit xml format report that jenkins supports")
 
+        self._discovery_parser.add_argument('-g', '--group', dest='groups', action='append', help="Only run tests which belong to the given groups")
         self._discovery_parser.add_argument('-sfile', '--settings-file', dest='settings_file', help="dir path or file path of settings")
         self._discovery_parser.add_argument('-html', '--html-report', dest='html', help="html report file full path")
         self._discovery_parser.add_argument('-title', '--report-title', dest='title', default="", help="html report title")

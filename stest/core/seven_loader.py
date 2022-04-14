@@ -16,7 +16,7 @@ class SevenTestLoader(TestLoader):
 
     def loadTestsFromTestCase(self, testCaseClass):
         if issubclass(testCaseClass, AbstractTestCase):
-            loaded_suite = self.suiteClass(testCaseClass.collect_testcases(getattr(self.args_namespace, "settings_file", None)))
+            loaded_suite = self.suiteClass(testCaseClass.collect_testcases(self.args_namespace))
         else:
             loaded_suite = super().loadTestsFromTestCase(testCaseClass)
         return loaded_suite

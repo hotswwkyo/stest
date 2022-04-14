@@ -54,6 +54,11 @@ class LazyLibs(object):
             from selenium.webdriver.remote.webelement import WebElement
             return WebElement
 
+        @property
+        def Select(self):
+            from selenium.webdriver.support.ui import Select
+            return Select
+
     class Wechat(object):
         @property
         def minium(self):

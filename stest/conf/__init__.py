@@ -179,11 +179,12 @@ class LazySettings(LazyObject):
         super().__delattr__(name)
         self.__dict__.pop(name, None)
 
-    def load_configure_from_file(self, settings_module_filepath):
+    def load_configure_from_file(self, settings_module_filepath, force=False):
 
-        if self._wrapped is empty:
-            self._wrapped = Settings()
-        self._wrapped.load(settings_module_filepath)
+        if force or (not self.is_loaded):
+            if self._wrapped is empty:
+                self._wrapped = Settings()
+            self._wrapped.load(settings_module_filepath)
 
     @property
     def configured(self):

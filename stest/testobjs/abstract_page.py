@@ -528,17 +528,21 @@ class AbstractPage(attrs_manager.AttributeManager):
 
         return self.find_elements(by=LazyLibs.Selenium().By.CSS_SELECTOR, locator=css_selector, timeout=timeout, parent=parent)
 
-    def find_element(self, by=LazyLibs.Selenium().By.ID, locator=None, timeout=None, parent=None):
-        """
-        查找匹配的元素
+    def find_element(self, by="id", locator=None, timeout=None, parent=None):
+        """查找匹配的元素
 
-        @param by       - 查找方式
-        @param locator  - 元素定位器
-        @param timeout  - 查找元素超时时间
-        @param parent   - 父元素,提供则从父元素下查找
-        @raise NoSuchElementException - if the element wasn't found
-        @raise TimeoutException - if the element wasn't found when time out
-        @return         - WebElement - the element if it was found
+        Args:
+            - by       - 查找方式
+            - locator  - 元素定位器
+            - timeout  - 查找元素超时时间
+            - parent   - 父元素,提供则从父元素下查找
+
+        Raises:
+            - NoSuchElementException - if the element wasn't found
+            - TimeoutException - if the element wasn't found when time out
+
+        Returns:
+            - WebElement - the element if it was found
         """
 
         if not (timeout and self._validate_timeout(timeout)):
@@ -570,15 +574,17 @@ class AbstractPage(attrs_manager.AttributeManager):
         else:
             return element
 
-    def find_elements(self, by=LazyLibs.Selenium().By.ID, locator=None, timeout=None, parent=None):
-        """
-        查找所有匹配的元素
+    def find_elements(self, by="id", locator=None, timeout=None, parent=None):
+        """查找所有匹配的元素
 
-        @param by - 查找方式
-        @param locator - 元素定位器
-        @param timeout - 查找元素超时时间
-        @param parent - 父元素,提供则从父元素下查找
-        @return  list of WebElement - a list with elements if any was found. An empty list if not
+        Args:
+            - by - 查找方式
+            - locator - 元素定位器
+            - timeout - 查找元素超时时间
+            - parent - 父元素,提供则从父元素下查找
+
+        Returns:
+            - list of WebElement - a list with elements if any was found. An empty list if not
         """
 
         if not (timeout and self._validate_timeout(timeout)):
@@ -1193,9 +1199,8 @@ class AbstractPage(attrs_manager.AttributeManager):
 
         See: selenium.webdriver.support.ui.Select
         """
-        from selenium.webdriver.support.ui import Select
 
-        return Select(select_element)
+        return LazyLibs.Selenium().Select(select_element)
 
     def close_current_window(self):
         """ Closes the current window.
@@ -1220,7 +1225,7 @@ class AbstractPage(attrs_manager.AttributeManager):
 
     @classmethod
     def join_xpaths(cls, *xpaths):
-        def join_two_xpath(cls, x1, x2):
+        def join_two_xpath(x1, x2):
             """拼接xpath"""
 
             slash = '/'

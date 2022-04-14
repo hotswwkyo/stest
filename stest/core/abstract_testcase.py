@@ -138,13 +138,27 @@ class AbstractTestCase(unittest.TestCase):
         return super().run(result=result)
 
     @classmethod
-    def collect_testcases(cls, settings_file=None, print_tips=False):
+    def collect_testcases(cls, args_namespace=None, print_tips=False):
 
         members = [obj_val for obj_key, obj_val in cls.__dict__.items() if inspect.ismethod(obj_val) or inspect.isfunction(obj_val)]
         test_func_list = [member for member in members if Test.func_has_test_marker(member)]
         run_test_func_list = [tf for tf in test_func_list if Test.get_test_marker(tf, key=Test.ENABLED, default_value=False)]
         run_test_func_list.sort(key=lambda tf: Test.get_test_marker(tf, key=Test.PRIORITY, default_value=1))
         testcases = []
+        groups = getattr(args_namespace, 'groups', None)
+        settings_file = getattr(args_namespace, 'settings_file', None)
+
+        # 只运行命令行参数-g 指定组的测试用例。
+        if groups and isinstance(groups, (list, tuple)):
+            testfunc_list = []
+            for testfunc in run_test_func_list:
+                name_groups = Test.get_test_marker(testfunc, key=Test.GROUPS, default_value=[])
+                for ng in name_groups:
+                    if ng in groups:
+                        testfunc_list.append(testfunc)
+                        break
+            run_test_func_list = testfunc_list
+
         for test_func in run_test_func_list:
 
             if not settings.is_loaded:
