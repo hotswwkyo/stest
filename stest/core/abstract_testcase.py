@@ -183,7 +183,7 @@ class AbstractTestCase(unittest.TestCase):
                     settings.load_configure_from_file(filepath)
                     tips = '加载的配置文件是：{}'.format(filepath)
                 else:
-                    tips = '在该目录（{}）及其子孙目录中没有找到配置文件'.format(start_path)
+                    tips = '在该目录（{}）及其子孙目录中没有找到配置文件: {}'.format(start_path, finder.settings_file_name)
                 if print_tips:
                     print(tips)
             test_func.collect_test_datasets(cls, test_func)
@@ -196,10 +196,10 @@ class AbstractTestCase(unittest.TestCase):
         return testcases
 
     @classmethod
-    def build_self_suite(cls):
+    def build_self_suite(cls, args_namespace=None, print_tips=False):
 
         suite = unittest.TestSuite()
-        suite.addTests(cls.collect_testcases())
+        suite.addTests(cls.collect_testcases(args_namespace, print_tips))
         return suite
 
     @classmethod

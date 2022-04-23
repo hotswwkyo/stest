@@ -239,6 +239,23 @@ class Test(object):
 
             instance = args[0] if len(args) > 0 else None
             method_instance = instance if instance and self.is_method_instance(instance, func_name) else None
+
+            # 判断是否调用的时候是否传入实参，无实参（def test_plus(self, testdata) --> self.test_plus()）
+            # 则自动获取参数化数据作为实参调用
+            count = len(args) + len(kwargs)
+            if method_instance is None:
+                if count > 0:
+                    return func(*args, **kwargs)
+            else:
+                if count > 1:
+                    return func(*args, **kwargs)
+
+            # 自动获取参数化数据作为实参调用, 调用者必须是用该测试方法实例化的对象：
+            # testcase=TestCaseClass(testmethodname)
+            # testcase.testmethod()
+            if getattr(method_instance, "real_test_method_name", None) != func_name:
+                return func(*args, **kwargs)
+
             new_args = list(args)
 
             # argspec.args 位置参数
