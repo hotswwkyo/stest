@@ -4,7 +4,7 @@ Created on 2019年12月5日
 
 @author: siwenwei
 '''
-
+import html
 from ..html import elements
 from .piechart import PieChart
 
@@ -58,7 +58,7 @@ class SummaryTable(elements.Table):
     def _build_header(self):
         row = elements.TR()
         colspan = 3 if self.pie_chart_info else 2
-        task_title_cell = elements.TD(self.title).add_css_class(self.FIXED_WIDTH).set_attr("colspan", colspan)
+        task_title_cell = elements.TD(html.escape(self.title, False)).add_css_class(self.FIXED_WIDTH).set_attr("colspan", colspan)
         row.append_child(task_title_cell)
         self.thead.append_child(row)
 
@@ -100,8 +100,8 @@ class SummaryTable(elements.Table):
 
     def _build_row(self, title, value):
         row = elements.TR()
-        task_title_cell = elements.TD(title).add_css_class(self.FIXED_WIDTH)
-        task_value_cell = elements.TD(value)
+        task_title_cell = elements.TD(html.escape(title, False)).add_css_class(self.FIXED_WIDTH)
+        task_value_cell = elements.TD(html.escape(value, False))
         row.append_child(task_title_cell)
         row.append_child(task_value_cell)
         return (row, task_title_cell, task_value_cell)
@@ -195,7 +195,7 @@ class ReportTable(elements.Table):
 
         tr = elements.TR()
         for col_title in self.header_titles:
-            cell = elements.TH(col_title)
+            cell = elements.TH(html.escape(col_title, False))
             tr.append_child(cell)
         self.thead.append_child(tr)
         return self
@@ -210,7 +210,7 @@ class ReportTable(elements.Table):
         """
 
         el_fs, el_item, el_title, el_content = self.__build_fieldset()
-        el_title_name = elements.Span(label)
+        el_title_name = elements.Span(html.escape(label, False))
         el_title.append_child(el_title_name)
         if param_type == "args":
             el_title_name.add_css_class("seven-testcase-args")
@@ -221,13 +221,10 @@ class ReportTable(elements.Table):
             return
 
         for k, v in arguments_dict.items():
-            fs = elements.Fieldset(k)
-            styles = ["border-top-style: solid; border-top-width: 1px; border-left: none; border-right: none; border-bottom: none;"]
-            styles.append("border-color: #e6e6e6;")
-            styles.append("margin-left: 7px;")
-            styles.append("margin-right: 7px;")
-            fs.set_attr("style", "".join(styles))
-            fs.append_child(elements.Pre(v).set_attr("style", "padding-left: 21px; padding-right: 21px;"))
+            fs = elements.Fieldset(html.escape(k, False)).add_css_class("fieldset-normal")
+            if not isinstance(v, str):
+                v = str(v)
+            fs.append_child(elements.Pre(html.escape(v, False)).add_css_class("fieldset-normal-content"))
             el_content.append_child(fs)
         return el_fs
 
@@ -241,7 +238,7 @@ class ReportTable(elements.Table):
         }
 
         el_fs, el_item, el_title, el_content = self.__build_fieldset()
-        el_title_name = elements.Span(label)
+        el_title_name = elements.Span(html.escape(label, False))
         el_title.append_child(el_title_name)
         el_item.add_css_class("seven-fieldset-item-hidden")
         el_title_name.add_css_class("seven-testcase-extra-info")
@@ -249,9 +246,11 @@ class ReportTable(elements.Table):
         for k, v in extra_info.items():
             if not v:
                 continue
-            v = ",".join(v) if isinstance(v, (list, tuple)) else v
-            el_dl, el_dt, el_dd = self.__build_seven_dl(namemaps.get(k, k), elements.Pre(v))
-
+            v = ",".join([str(one) for one in v]) if isinstance(v, (list, tuple)) else v
+            v = v if isinstance(v, str) else str(v)
+            # el_dl, el_dt, el_dd = self.__build_seven_dl(html.escape(namemaps.get(k, k), False), elements.Pre(html.escape(v, False)))
+            el_dl = elements.Fieldset(html.escape(namemaps.get(k, k), False)).add_css_class("fieldset-normal")
+            el_dl.append_child(elements.Pre(html.escape(v, False)).add_css_class("fieldset-normal-content"))
             el_content.append_child(el_dl)
         return el_fs
 
@@ -291,19 +290,19 @@ class ReportTable(elements.Table):
         if isinstance(dt_val, elements.HtmlElement):
             el_dt.append_child(dt_val)
         else:
-            el_dt.text = dt_val
+            el_dt.text = html.escape(dt_val, False)
 
         if isinstance(dd_val, elements.HtmlElement):
             el_dd.append_child(dd_val)
         else:
-            el_dd.text = dd_val
+            el_dd.text = html.escape(dd_val, False)
 
         return (el_dl, el_dt, el_dd)
 
     def __build_screenshot_area(self, screenshot_info, label="截图"):
 
         el_fs, el_item, el_title, el_content = self.__build_fieldset()
-        el_title_name = elements.Span(label)
+        el_title_name = elements.Span(html.escape(label, False))
 
         el_title.append_child(el_title_name)
         el_item.add_css_class("seven-fieldset-item-hidden")
@@ -317,20 +316,20 @@ class ReportTable(elements.Table):
                 showview = elements.Img().set_attr("onclick", 'show_image_on_new_window(this)').set_attr("src", src)
                 showview.add_css_class(self.SCREENSHOT_OF_TEST_FAILURE)
             else:
-                showview = elements.Pre(screenshot_info.get("message", ""))
+                showview = elements.Pre(html.escape(screenshot_info.get("message", ""), False))
             el_content.append_child(showview)
         return el_fs
 
     def __build_message_area(self, message_list, label="控制台信息"):
 
         el_fs, el_item, el_title, el_content = self.__build_fieldset()
-        el_title_name = elements.Span(label)
+        el_title_name = elements.Span(html.escape(label, False))
 
         el_title.append_child(el_title_name)
         el_title_name.add_css_class("seven-testcase-traceback")
 
         outputmsg = '\n'.join(message_list) if message_list else ''
-        el_content.append_child(elements.Pre(outputmsg))
+        el_content.append_child(elements.Pre(html.escape(outputmsg, False)))
         return el_fs
 
     def _build_console_row(self, testcase_html_id, teststep_zone_html_id, testcase):
@@ -374,9 +373,11 @@ class ReportTable(elements.Table):
             row = elements.TR().set_attr("id", tc_html_id).add_css_class(*self.TESTCASE_ROW_CSS_CLASS)
             row.set_attr("onclick", "toggleTestStepsRow('%s')" % teststep_zone_html_id)
             preceding_siblings = []
-            name_cell = elements.TD(tc["name"])
+            nc1 = elements.Span(str(index + 1)).add_css_class("tc-sn")
+            nc2 = elements.Span(html.escape(tc["name"], False)).add_css_class("tc-name")
+            name_cell = elements.TD().append_child(nc1, nc2)
             name_cell.add_css_class(self.TESTCASE_NAME_COL_CSS_CLASS)
-            name_cell.set_attr("title", tc["method_name"])
+            name_cell.set_attr("title", html.escape(tc["method_name"]))
             preceding_siblings.append(name_cell)
             row.append_child(*preceding_siblings)
 
@@ -401,9 +402,14 @@ class ReportTable(elements.Table):
             row = elements.TR().set_attr("id", tp_html_id).add_css_class(self.TESTPOINT_ROW_CSS_CLASS)
             row.set_attr("onclick", "toggleTestCaseOfTestPoint('%s','%s','%s',%s)" % (tp_html_id, self.TESTCASE_ID_PREFIX, self.ID_SEP, len(tp["testcases"])))
             point_name = tp["name"]
-            short_name = point_name.split(".")[-1]
-            name_cell = elements.TD(short_name).add_css_class(self.TESTPOINT_NAME_CSS_CLASS)
-            name_cell.set_attr("title", point_name)
+            cls_name = point_name[0]
+            chinese_name = point_name[1]
+            short_name = chinese_name if chinese_name else cls_name.split(".")[-1]
+            nc1 = elements.Span(str(index + 1)).add_css_class("tp-sn")
+            nc2 = elements.Span(html.escape(short_name, False)).add_css_class("tp-name")
+            name_cell = elements.TD().add_css_class(self.TESTPOINT_NAME_CSS_CLASS)
+            name_cell.append_child(nc1, nc2)
+            name_cell.set_attr("title", html.escape(" ".join(point_name)))
             row.append_child(name_cell)
             row.append_child(elements.TD(tp["count"]).add_css_class(self.TESTPOINT_COUNT_CSS_CLASS))
             row.append_child(elements.TD(tp["pass_count"]).add_css_class(self.TESTPOINT_PASS_CSS_CLASS))

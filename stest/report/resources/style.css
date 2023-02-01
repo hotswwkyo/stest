@@ -622,6 +622,8 @@ tr.testcase-hidden {
 pre {
 	white-space: pre-wrap;
 	word-wrap: break-word;
+	padding: 0px;
+    margin: 0px;
 }
 
 .seven-table.summary tr td.svg-box {
@@ -1002,4 +1004,32 @@ textarea {
 .screenshot-of-test-failure{
     width: 100%;
     cursor: pointer;
+}
+
+.tp-sn {
+	margin-right:7px;
+}
+
+.tp-name {}
+
+.tc-sn {
+	margin-right:7px;
+}
+
+.tc-name {}
+
+.fieldset-normal {
+	border-top-style: solid;
+    border-top-width: 1px;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-color: #e6e6e6;
+    margin-left: 7px;
+    margin-right: 7px;
+}
+
+.fieldset-normal-content{
+	padding-left: 21px;
+    padding-right: 21px;
 }

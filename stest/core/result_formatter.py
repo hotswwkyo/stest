@@ -92,13 +92,18 @@ class TestCaseWrapper(AttributeManager):
     @property
     def testpoint(self):
         if self.is_abstract_testcase:
-            return self.test.strclass()
+            classname = self.test.strclass()
         else:
             try:
                 classname = strclass(self.test.__class__)
             except Exception:
                 classname = self.test.id()
-            return classname
+
+        try:
+            chinese_name = self.test.__doc__.split("\n")[0].strip()
+        except Exception:
+            chinese_name = ""
+        return (classname, chinese_name)
 
     @property
     def result_name(self):
@@ -133,7 +138,9 @@ class TestCaseWrapper(AttributeManager):
             Test.AUTHOR: tms.get(Test.AUTHOR, ""),
             Test.EDITORS: tms.get(Test.EDITORS, []),
             Test.LAST_MODIFYIED_BY: tms.get(Test.LAST_MODIFYIED_BY, ""),
-            Test.LAST_MODIFYIED_TIME: tms.get(Test.LAST_MODIFYIED_TIME, "")
+            Test.LAST_MODIFYIED_TIME: tms.get(Test.LAST_MODIFYIED_TIME, ""),
+            "运行编号": self.exec_number,
+            Test.PRIORITY: tms.get(Test.PRIORITY, ""),
         }
         return info
 
@@ -291,7 +298,8 @@ class TestResultFormatter(object):
         testpoints = []
         for testcase in self.testcases:
             testpoint = testcase.testpoint
-            if testpoint not in testpoints:
+            clsname = testpoint[0]
+            if clsname not in [tp[0] for tp in testpoints]:
                 testpoints.append(testpoint)
         return testpoints
 
@@ -301,7 +309,7 @@ class TestResultFormatter(object):
         for testpoint in self._get_testpoints():
             group_testcases = []
             for test in self.testcases:
-                if testpoint == test.testpoint:
+                if testpoint[0] == test.testpoint[0]:
                     group_testcases.append(test)
             groups.append((testpoint, group_testcases))
         return groups

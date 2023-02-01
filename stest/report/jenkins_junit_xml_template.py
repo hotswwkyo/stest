@@ -64,12 +64,12 @@ class JenkinsJunitXMLReportTemplate(object):
         errors = str(errors)
         failures = str(failures)
         skipped = str(skipped)
-        el_testsuite = ET.Element(self.TAGS.testsuite, name=name, tests=tests, errors=errors, failures=failures, skipped=skipped, **others)
+        el_testsuite = ET.Element(self.TAGS.testsuite, name=saxutils.quoteattr(name), tests=tests, errors=errors, failures=failures, skipped=skipped, **others)
         return el_testsuite
 
     def __build_testcase_element(self, name, classname, time, **result):
 
-        tc = ET.Element(self.TAGS.testcase, name=name, classname=classname, time=time)
+        tc = ET.Element(self.TAGS.testcase, name=saxutils.quoteattr(name), classname=saxutils.quoteattr(classname), time=time)
 
         tagname = None
         if self.TAGS.skipped in result:
@@ -85,7 +85,7 @@ class JenkinsJunitXMLReportTemplate(object):
             summary = ''
             details = ''
         if tagname:
-            child = ET.Element(tagname, message=saxutils.escape(summary))
+            child = ET.Element(tagname, message=saxutils.quoteattr(summary))
             child.text = saxutils.escape(details)
             tc.append(child)
 
@@ -108,7 +108,7 @@ class JenkinsJunitXMLReportTemplate(object):
             error_count = error_count + testpoint['error_count']
             skip_count = skip_count + testpoint['skip_count'] + testpoint['block_count']
             fail_count = fail_count + testpoint['fail_count'] + testpoint['xpass_count']
-            classname = testpoint['name']
+            classname = testpoint['name'][0]
             testcases = testpoint['testcases']
 
             for testcase in testcases:
