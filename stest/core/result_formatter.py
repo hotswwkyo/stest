@@ -141,6 +141,9 @@ class TestCaseWrapper(AttributeManager):
             Test.LAST_MODIFYIED_TIME: tms.get(Test.LAST_MODIFYIED_TIME, ""),
             "运行编号": self.exec_number,
             Test.PRIORITY: tms.get(Test.PRIORITY, ""),
+            Test.DNAME: tms.get(Test.DNAME, ""),
+            Test.DEPENDS: tms.get(Test.DEPENDS, ""),
+            Test.GROUPS: tms.get(Test.GROUPS, ""),
         }
         return info
 
