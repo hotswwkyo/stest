@@ -110,8 +110,9 @@ class SevenTestProgram(unittest.TestProgram):
             summary_info[title_key] = os.path.basename(pathname)
         summary_info['start_time'] = start_time.strftime("%Y-%m-%d %H:%M:%S")
         summary_info['finish_time'] = finish_time.strftime("%Y-%m-%d %H:%M:%S")
-        summary_info['task_description'] = self.task_description
-        summary_info['executor'] = self.tester if self.tester else ''
+        summary_info['task_description'] = self.task_description if self.task_description else getattr(settings, "DESCRIPTION", "")
+        summary_info['executor'] = self.tester if self.tester else getattr(settings, "EXECUTOR", "")
+        summary_info['project_name'] = self.project if self.project else getattr(settings, "PROJECT_NAME", "")
         summary_info['task_number'] = self.task if self.task else start_time.strftime("%Y%m%d%H%M%S%f")
         ReportBuilder(result).build_html_report(fname, **summary_info)
         if notice:
@@ -158,8 +159,9 @@ class SevenTestProgram(unittest.TestProgram):
             summary_info[title_key] = os.path.basename(pathname)
         summary_info['start_time'] = start_time.strftime("%Y-%m-%d %H:%M:%S")
         summary_info['finish_time'] = finish_time.strftime("%Y-%m-%d %H:%M:%S")
-        summary_info['task_description'] = self.task_description
-        summary_info['executor'] = self.tester if self.tester else ''
+        summary_info['task_description'] = self.task_description if self.task_description else getattr(settings, "DESCRIPTION", "")
+        summary_info['executor'] = self.tester if self.tester else getattr(settings, "EXECUTOR", "")
+        summary_info['project_name'] = self.project if self.project else getattr(settings, "PROJECT_NAME", "")
         summary_info['task_number'] = self.task if self.task else start_time.strftime("%Y%m%d%H%M%S%f")
         ReportBuilder(result).build_jenkins_junit_xml_report(fname, **summary_info)
         if notice:

@@ -50,9 +50,9 @@ class SummaryTable(elements.Table):
         self.task_number = task_number
         self.start_time = start_time
         self.finish_time = finish_time
-        self.executor = executor
-        self.project_name = project_name
-        self.task_description = task_description
+        self.executor = executor if isinstance(executor, str) else ""
+        self.project_name = project_name if isinstance(project_name, str) else ""
+        self.task_description = task_description if isinstance(task_description, str) else ""
         self.pie_chart_info = pie_chart_info
 
     def _build_header(self):
