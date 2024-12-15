@@ -1496,8 +1496,7 @@ if __name__ == '__main__':
 ```python
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-
-
+import typing
 from stest.testobjs.abstract_playwright_page import AbstractPlaywrightPage
 
 
