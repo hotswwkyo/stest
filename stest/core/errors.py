@@ -29,3 +29,27 @@ class ConstAttributeException(StestException):
 
 class WindowNotFound(StestException):
     pass
+
+
+class StestWarning(UserWarning):
+    pass
+
+
+class StestDeprecationWarning(StestWarning, DeprecationWarning):
+    pass
+
+
+class PlaywrightDriverError(StestException):
+    pass
+
+
+class NoOpendPageError(PlaywrightDriverError):
+    pass
+
+
+class NoOpendContextError(PlaywrightDriverError):
+    pass
+
+
+class NoOpendBrowserError(PlaywrightDriverError):
+    pass

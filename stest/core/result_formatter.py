@@ -6,23 +6,23 @@
 '''
 import copy
 import json
-from ..const import Const
+from ..fixed_field import FixedField
 from ..utils.sutils import strclass
 from .test_wrapper import Test
 from .abstract_testcase import AbstractTestCase
 from ..utils.attrs_manager import AttributeManager
-from ..utils.attrs_marker import ConstAttributeMarker
+from ..utils.attrs_marker import Const
 
 
 class TestCaseWrapper(AttributeManager):
 
-    SUCCESS = ConstAttributeMarker(0, "通过", alias="通过")
-    FAILURE = ConstAttributeMarker(1, "失败", alias="失败")
-    ERROR = ConstAttributeMarker(2, "异常", alias="异常")
-    BLOCKED = ConstAttributeMarker(3, "阻塞", alias="阻塞")
-    SKIPED = ConstAttributeMarker(4, "跳过", alias="skiped")
-    XFAILURE = ConstAttributeMarker(5, "预期失败", alias="预期失败")
-    XSUCCESS = ConstAttributeMarker(6, "预期失败却成功", alias="unexpected successes")
+    SUCCESS = Const(0, "通过", alias="通过")
+    FAILURE = Const(1, "失败", alias="失败")
+    ERROR = Const(2, "异常", alias="异常")
+    BLOCKED = Const(3, "阻塞", alias="阻塞")
+    SKIPED = Const(4, "跳过", alias="skiped")
+    XFAILURE = Const(5, "预期失败", alias="预期失败")
+    XSUCCESS = Const(6, "预期失败却成功", alias="unexpected successes")
 
     CSS_CLASS_MAPS = {
         SUCCESS.value: 'test-pass',
@@ -65,8 +65,8 @@ class TestCaseWrapper(AttributeManager):
     def duration(self):
         """ 返回执行用例耗时，单位秒"""
 
-        start_time = getattr(self.test, Const.STEST_START_PERF_COUNTER, None)
-        finish_time = getattr(self.test, Const.STEST_FINISH_PERF_COUNTER, None)
+        start_time = getattr(self.test, FixedField.STEST_START_PERF_COUNTER, None)
+        finish_time = getattr(self.test, FixedField.STEST_FINISH_PERF_COUNTER, None)
 
         if start_time is not None and finish_time is not None:
             total_time = finish_time - start_time
@@ -77,11 +77,11 @@ class TestCaseWrapper(AttributeManager):
     @property
     def start_time(self):
 
-        return getattr(self.test, Const.STEST_TESTCASE_START_TIME, None)
+        return getattr(self.test, FixedField.STEST_TESTCASE_START_TIME, None)
 
     @property
     def exec_number(self):
-        return getattr(self.test, Const.STEST_TESTCASE_EXEC_NUMBER, 0)
+        return getattr(self.test, FixedField.STEST_TESTCASE_EXEC_NUMBER, 0)
 
     @property
     def screenshot_info(self):
@@ -155,12 +155,12 @@ class TestCaseWrapper(AttributeManager):
     @property
     def output_message(self):
 
-        return ''
+        return self.message.get('output_message', '')
 
     @property
     def error_message(self):
 
-        return self.message
+        return self.message.get('error_message', '')
 
     @property
     def testdatas(self):
@@ -209,9 +209,25 @@ class TestCaseWrapper(AttributeManager):
     def set_result(self, result_code, message=""):
 
         if result_code not in self.result_codes():
-            raise ValueError('The value range of result code is: {}'.format(' | '.join(self.result_codes())))
+            raise ValueError('The value range of result code is: {}'.format(
+                ' | '.join(self.result_codes())))
         self.__result_code = result_code
-        self.message = message
+        if isinstance(message, str):
+            self.message = dict(error_message=message)
+        elif isinstance(message, dict):
+            self.message = message
+        elif isinstance(message, (list, tuple)):
+            count = len(message)
+            output_message = ''
+            error_message = ''
+            if count == 1:
+                output_message = message[0]
+            elif count > 1:
+                output_message = message[0]
+                error_message = message[1]
+            self.message = dict(output_message=output_message, error_message=error_message)
+        else:
+            raise TypeError('message param type must be one of (str, list, tuple, dict)')
 
 
 class TestResultFormatter(object):
@@ -272,26 +288,32 @@ class TestResultFormatter(object):
         testcaselist = []
         id = 1
         for test, message in self.result.errors:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.ERROR, message=message, screenshot_info=self.result.screenshots.get(test, {})))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.ERROR,
+                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
         for test, message in self.result.skipped:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SKIPED, message=message, screenshot_info=self.result.screenshots.get(test, {})))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SKIPED,
+                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.failures:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.FAILURE, message=message, screenshot_info=self.result.screenshots.get(test, {})))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.FAILURE,
+                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
-        for test in self.result.successes:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SUCCESS, screenshot_info=self.result.screenshots.get(test, {})))
+        for test, message in self.result.successes:
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SUCCESS, message=(
+                message,), screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.expectedFailures:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XFAILURE, message=message, screenshot_info=self.result.screenshots.get(test, {})))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XFAILURE,
+                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
 
         for test, message in self.result.unexpectedSuccesses:
-            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XSUCCESS, screenshot_info=self.result.screenshots.get(test, {})))
+            testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XSUCCESS,
+                                screenshot_info=self.result.screenshots.get(test, {})))
             id = id + 1
         testcaselist.sort(key=lambda one: one.exec_number)
         return testcaselist

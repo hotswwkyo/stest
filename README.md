@@ -14,7 +14,7 @@
     >* 支持灵活控制测试失败自动截图并附加到测试报告中
     >* 支持page object模式，内置一套易于维护的解决方案
     >* 驱动管理器（DRIVER_MANAGER）更加便捷的管理打开的驱动会话
-    >* 对selenium、appium、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）做了底层集成支持
+    >* 提供selenium、appium、playwright、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）的page object的实现方案
     >    ![](https://github.com/hotswwkyo/stest/blob/main/img/htmlreport.png)
 
 
@@ -217,7 +217,7 @@ if __name__ == '__main__':
 可以通过命令行参数-sfile指定配置文件路径或者指定查找配置文件的开始目录路径，如果未指定，则框架会自动递归遍历项目目录（根据用例所在目录往外推，第一个非python包的目录即被认定为项目目录）及其子孙目录，查找settings.py配置文件，找到则会在收集用例测试数据之前自动导入该文件。可通过from stest import settings 导入配置对象，然后通过settings对象访问配置文件中的配置字段（字段必须是大写的,如：settings.SCREENSHOT）
 * 框架使用的配置
     | 字段 | 描述 |
-    | ---- | ---- |
+    | :---- | :---- |
     | SCREENSHOT | 控制测试失败后是否自动截图 |
     | ATTACH_SCREENSHOT_TO_REPORT | 控制截图后是否附加到测试报告中，如果附加到报告中，则截图转base64数据附加到报告中 |
     | SCREENSHOT_SAVE_DIR | 以后将用到的字段，截图存放目录 |
@@ -227,6 +227,7 @@ if __name__ == '__main__':
     | EXECUTOR | 任务执行人，命令行没有传入则取该设置 |
     | PROJECT_NAME | 项目名称，命令行没有传入则取该设置 |
     | DESCRIPTION | 描述，命令行没有传入则取该设置 |
+    | DRIVER_MANAGER | 驱动管理器，框架自动赋值，勿修改 |
 
 * stestdemo
     >    ![](https://github.com/hotswwkyo/stest/blob/main/img/project_dirs.png)
@@ -234,7 +235,8 @@ if __name__ == '__main__':
 ## Test参数说明
 
 | 参数 | 类型 | 描述 |
-| ---- | ---- | ---- |
+| :---- | :---- | :---- |
+| name | 字符串 | 测试用例名称 |
 | author | 字符串 | 用例编写者 |
 | editors | 列表 | 修改者列表 |
 | dname | 字符串或列表 | 用于给用例起一个用于设置依赖的名称 |
@@ -243,7 +245,7 @@ if __name__ == '__main__':
 | enabled | 布尔值 | 是否启用执行该测试方法 |
 | priority | 整数 | 测试方法的执行优先级，数值越小执行越靠前 |
 | alway_run | 布尔值 | 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
-| description | 字符串 | 测试用例名称 |
+| description | 字符串 | 弃用，原用于设置测试用例名称 |
 | data_provider | object | 测试方法的参数化数据提供者，默认值是None，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表（当测试方法只有一个参数化时，应返回一维列表，多个参数化时返回二维列表） |
 | data_provider_args | 元祖 | 数据提供者变长位置参数(args) |
 | data_provider_kwargs | 字典 | 数据提供者变长关键字参数(kwargs) |
@@ -441,22 +443,22 @@ class CalculationTest(AbstractTestCase):
 
     import os
     from stest import utils
-    from stest.attrs_marker import AttributeMarker
+    from stest.attrs_marker import Var
     from stest.abstract_data_provider import AbsractDataProvider
     from stest.excel_file_reader import TestCaseExcelFileReader as ExcelReader
 
 
     class SevenDataProvider(AbsractDataProvider):
 
-        FILE_EXT = AttributeMarker(".xlsx", True, "数据文件拓展名")
-        BLOCK_FLAG = AttributeMarker("用例名称", True, "用例分隔标记")
-        DEFAULT_SHEET_INDEX = AttributeMarker(0, True, "默认从索引为0的工作表读取数据")
+        FILE_EXT = Var(".xlsx", True, "数据文件拓展名")
+        BLOCK_FLAG = Var("用例名称", True, "用例分隔标记")
+        DEFAULT_SHEET_INDEX = Var(0, True, "默认从索引为0的工作表读取数据")
 
         # get_datasets方法变长字典参数kwargs接收的参数的键名
-        PARAM_DATA_FILE_NAME = AttributeMarker("data_file_name", True, "数据文件名称参数")
-        PARAM_DATA_FILE_DIR_PATH = AttributeMarker("data_file_dir_path", True, "数据文件所在目录路径参数")
-        PARAM_SHEET_NAME_OR_INDEX = AttributeMarker("sheet_name_or_index", True, "数据文件中数据所在的工作表索引(从0开始)或名称参数")
-        KWARGS_NAMES = AttributeMarker((PARAM_DATA_FILE_NAME, PARAM_DATA_FILE_DIR_PATH, PARAM_SHEET_NAME_OR_INDEX), True, "接收的参数名")
+        PARAM_DATA_FILE_NAME = Var("data_file_name", True, "数据文件名称参数")
+        PARAM_DATA_FILE_DIR_PATH = Var("data_file_dir_path", True, "数据文件所在目录路径参数")
+        PARAM_SHEET_NAME_OR_INDEX = Var("sheet_name_or_index", True, "数据文件中数据所在的工作表索引(从0开始)或名称参数")
+        KWARGS_NAMES = Var((PARAM_DATA_FILE_NAME, PARAM_DATA_FILE_DIR_PATH, PARAM_SHEET_NAME_OR_INDEX), True, "接收的参数名")
 
         def _get_data_file_name(self, kwargs, default_value=None):
 
@@ -625,12 +627,47 @@ class CalculationTest(AbstractTestCase):
         Demo1Test.run_test()
     ```
 
+## 钩子(hook)
+
+>* 通过wrapper 定义钩子
+>* 钩子函数需要能接收它所挂载到的宿主函数的所有参数，此外还需要接收一个额外参数作为第一个位置参数，这个额外参数为全局变量settings。
+>* 通过runstage参数指定钩子的运行阶段，框架会根据运行阶段标志执行钩子
+>* 框架内置运行阶段标志见 RunStage类，对应于SevenTestResult的同名方法。编写这些运行阶段的钩子函数时，除了第一个参数为全局变量settings外，其它参数与SevenTestResult的同名方法参数一一对应
+
+#### 示例
+    ```python
+    #!/usr/bin/env python
+    # -*- encoding: utf-8 -*-
+
+    import stest
+    from stest import hook
+    from stest import AbstractTestCase
+    from stest import Test as testcase
+    from playwright.sync_api import sync_playwright
+
+
+    @hook.wrapper(hook.RunStage.startTestRun)
+    def startTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
+        """Called once before any tests are executed."""
+        conf.playwright = sync_playwright().start()
+
+    @hook.wrapper(hook.RunStage.stopTestRun)
+    def stopTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
+        """Called once after all tests are executed."""
+        playwright = getattr(conf, 'playwright', None)
+        if playwright is not None:
+            playwright.stop()
+    ```
+
+
 ## Page object 实现方案
 
-*  web页面、app页面和window应用程序页面封装
+*  web页面、app页面和window应用程序页面封装（selenium appium WinAppDriver）
     > 封装的页面类应继承自抽象页面类AbstractPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractPage.Elements（元素类）和AbstractPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性DRIVER_MANAGER指向驱动管理器，WIN_APP_DRIVER_HELPER指向启动和关闭WinAppDriver.exe助手。
-* 微信小程序页面封装
+* 微信小程序页面封装（minium）
     > 封装的页面类应继承自抽象页面类AbstractMiniumPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractMiniumPage.Elements（元素类）和AbstractMiniumPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性WECHAT_MANAGER指向驱动管理器
+* web页面封装（playwright 自动化测试工具）
+    > 封装的页面类应继承自抽象页面类AbstractPlaywrightPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractPlaywrightPage.Elements（元素类）和AbstractPlaywrightPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性DRIVER_MANAGER指向驱动管理器。
 
 ### Web页面示例
 ```python
@@ -1453,5 +1490,138 @@ class VNCViewerPageTest(AbstractTestCase):
 if __name__ == '__main__':
     # VNCViewerPageTest.run_test()
     stest.main()
+
+```
+### playwrigh自动化测试工具 - Web页面示例
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
+
+from stest.testobjs.abstract_playwright_page import AbstractPlaywrightPage
+
+
+class LoginPage(AbstractPlaywrightPage):
+
+    # 因是利用反射自动构建的实例对象，ide无法通过点(dot)带出实例下的属性以及方法，
+    # 通过self.elements = typing.cast(LoginPage.Elements, self.elements)这个方式就可以解决该问题
+    def _build_elements(self):
+        rv = super()._build_elements()
+        self.elements = typing.cast(LoginPage.Elements, self.elements)
+        return rv
+
+    # 因是利用反射自动构建的实例对象，ide无法通过点(dot)带出实例下的属性以及方法，
+    # 通过self.actions = typing.cast(LoginPage.Actions, self.actions)这个方式就可以解决该问题
+    def _build_actions(self):
+        rv = super()._build_actions()
+        self.actions = typing.cast(LoginPage.Actions, self.actions)
+        return rv
+
+    class Elements(AbstractPlaywrightPage.Elements):
+
+        def __init__(self, page):
+            super().__init__(page)
+            self.page = typing.cast(LoginPage, self.page)
+
+        @property
+        def login_link(self):
+            """登录弹窗按钮"""
+
+            selector = '//*[@id="bid"]//div[contains(@class,"user_icon")]/a'
+            return self.page.get_by_xpath(selector)
+
+        @property
+        def login_title(self):
+
+            return self.page.get_by_text("账号登录", exact=True)
+
+        @property
+        def username(self):
+
+            self.page.get_by_text("手机号/邮箱").click()
+            self.sleep(1)
+            return self.page.get_by_id("Id")
+
+        @property
+        def password(self):
+
+            self.page.get_by_xpath('//*[@id="showpsd"]').click()
+            self.sleep(1)
+            return self.page.get_by_id("passwordFU")
+
+        @property
+        def login(self):
+            """登录按钮"""
+
+            return self.page.pwpage.get_by_role("link", name="登 录")
+
+    class Actions(AbstractPlaywrightPage.Actions):
+
+        # 因是利用反射自动构建的实例对象，ide无法通过点(dot)带出实例下的属性以及方法，
+        # 通过这个方式就可以解决该问题：self.page = typing.cast(LoginPage, self.page)
+        def __init__(self, page):
+            super().__init__(page)
+            self.page = typing.cast(LoginPage, self.page)
+
+        def login(self, name, pwd):
+            """登录
+
+            Args
+            -------
+            name : 手机号/邮箱
+            pwd : 密码
+            """
+
+            self.page.elements.login_link.click()
+            self.sleep(1)
+            self.page.elements.login_title.click()
+            self.sleep(1)
+            self.page.elements.username.fill(name)
+            self.page.elements.password.fill(pwd)
+            self.page.elements.login.click()
+            return self
+
+```
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
+import stest
+from ..pages.login_page import LoginPage
+
+
+class LoginTest(stest.AbstractTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+
+        pass
+
+    def setUp(self):
+
+        pass
+
+    @stest.Test(enabled=True, name="用正确账号密码登录测试", screenshot=True, groups=["all", "cctv"])
+    def login_with_right_user_and_password(self):
+
+        LoginPage().chrome().open_url("https://tv.cctv.com/").actions.login("test@qq.com", '123456')
+
+    def tearDown(self):
+
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+
+        pass
+
+
+if __name__ == '__main__':
+    LoginTest.run_test()
 
 ```

@@ -6,7 +6,7 @@
 '''
 
 from ..core.errors import ConstAttributeException
-from .attrs_marker import AttributeMarker
+from .attrs_marker import Var
 
 
 class AttributeMetaclass(type):
@@ -22,7 +22,7 @@ class AttributeMetaclass(type):
                 attributes.update(base._CLASS_ATTRIBUTES)
 
         for attribute, value in attrs.items():
-            if isinstance(value, AttributeMarker):
+            if isinstance(value, Var):
                 attributes[attribute] = value
 
         for attribute in attributes.keys():
@@ -59,7 +59,8 @@ class AttributeMetaclass(type):
         if attribute_name in cls.const_attrs.keys():
             return cls.const_attrs[attribute_name]
         else:
-            raise ConstAttributeException("'%s' class has no attribute '%s'" % (cls.__name__, attribute_name))
+            raise ConstAttributeException("'%s' class has no attribute '%s'" %
+                                          (cls.__name__, attribute_name))
 
 
 class AttributeManager(object, metaclass=AttributeMetaclass):
@@ -72,3 +73,30 @@ class AttributeManager(object, metaclass=AttributeMetaclass):
     def get_attr_marker(self, attribute_name):
 
         return self.__class__.get_attribute_marker(attribute_name)
+
+
+def unique(enumeration):
+    """
+    Class decorator for enumerations ensuring unique member values.
+    """
+
+    cadict = enumeration.const_attrs
+    vk = {}
+    for name, maker in cadict.items():
+        if maker.value not in vk:
+            vk[maker.value] = [name]
+        else:
+            vk[maker.value].append(name)
+    dk = {}
+    for k, v in vk.items():
+        if len(v) > 1:
+            dk[k] = v
+    if dk:
+        sames = []
+        for k, v in dk.items():
+            for o in v:
+                sames.append('{}={}'.format(o, k))
+        alias_details = ' '.join(sames)
+        raise ValueError('duplicate values found in %s: %s' %
+                         (enumeration, alias_details))
+    return enumeration

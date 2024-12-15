@@ -17,6 +17,7 @@ from .test_wrapper import Test
 
 class AbstractTestCase(unittest.TestCase):
     """为测试类添加自动收集和自行测试用例的方法"""
+
     def __init__(self, methodName='runTest', serial_number=1):
         super(AbstractTestCase, self).__init__(methodName)
         self._serial_number = serial_number
@@ -62,7 +63,8 @@ class AbstractTestCase(unittest.TestCase):
         return self.__testcase_runtime_datas
 
     def shortDescription(self):
-        name = Test.get_test_marker(self.test_method_obj, key=Test.DESCRIPTION, default_value=None)
+
+        name = Test.get_test_marker(self.test_method_obj, key=Test.NAME, default_value=None)
         return name or None
 
     def id(self):
@@ -95,7 +97,8 @@ class AbstractTestCase(unittest.TestCase):
 
                 # 检查是否有无法解析的依赖
                 missing = dm.get_missing(self)
-                miss_msg = '{} depends on {}, which was not found'.format(self.id(), ", ".join(missing))
+                miss_msg = '{} depends on {}, which was not found'.format(
+                    self.id(), ", ".join(missing))
                 if missing:
                     try:
                         raise self.failureException(miss_msg)
@@ -113,7 +116,8 @@ class AbstractTestCase(unittest.TestCase):
                     printables.append(printable)
                 if clinks:
                     try:
-                        raise self.failureException('{} circular dependency: {}'.format(self.id(), ", ".join(printables)))
+                        raise self.failureException(
+                            '{} circular dependency: {}'.format(self.id(), ", ".join(printables)))
                     except self.failureException:
                         exc_info = sys.exc_info()
                         if addFailure:
@@ -129,7 +133,8 @@ class AbstractTestCase(unittest.TestCase):
                 tresult, msglist = dm.dependent_test_is_pass(self)
                 if not tresult:
                     try:
-                        raise self.failureException('{} depends on: {}'.format(self.id(), '\n'.join(msglist)))
+                        raise self.failureException(
+                            '{} depends on: {}'.format(self.id(), '\n'.join(msglist)))
                     except self.failureException:
                         exc_info = sys.exc_info()
                         if addFailure:
@@ -140,10 +145,13 @@ class AbstractTestCase(unittest.TestCase):
     @classmethod
     def collect_testcases(cls, args_namespace=None, print_tips=False):
 
-        members = [obj_val for obj_key, obj_val in cls.__dict__.items() if inspect.ismethod(obj_val) or inspect.isfunction(obj_val)]
+        members = [obj_val for obj_key, obj_val in cls.__dict__.items(
+        ) if inspect.ismethod(obj_val) or inspect.isfunction(obj_val)]
         test_func_list = [member for member in members if Test.func_has_test_marker(member)]
-        run_test_func_list = [tf for tf in test_func_list if Test.get_test_marker(tf, key=Test.ENABLED, default_value=False)]
-        run_test_func_list.sort(key=lambda tf: Test.get_test_marker(tf, key=Test.PRIORITY, default_value=1))
+        run_test_func_list = [tf for tf in test_func_list if Test.get_test_marker(
+            tf, key=Test.ENABLED, default_value=False)]
+        run_test_func_list.sort(key=lambda tf: Test.get_test_marker(
+            tf, key=Test.PRIORITY, default_value=1))
         testcases = []
         groups = getattr(args_namespace, 'groups', None)
         settings_file = getattr(args_namespace, 'settings_file', None)
@@ -173,9 +181,11 @@ class AbstractTestCase(unittest.TestCase):
                             start_path = settings_file
                             filepath = finder.find_settings_file_from_start_dir(settings_file)
                         else:
-                            raise FileNotFoundError("No such file or directory: '{}'".format(settings_file))
+                            raise FileNotFoundError(
+                                "No such file or directory: '{}'".format(settings_file))
                     else:
-                        raise FileNotFoundError("No such file or directory: '{}'".format(settings_file))
+                        raise FileNotFoundError(
+                            "No such file or directory: '{}'".format(settings_file))
                 else:  # 未指定配置文件查找目录或者配置文件路径，则使用自动查找
                     start_path, filepath = finder.find_settings_file_by_testcase_class(cls)
 
@@ -183,7 +193,8 @@ class AbstractTestCase(unittest.TestCase):
                     settings.load_configure_from_file(filepath)
                     tips = '加载的配置文件是：{}'.format(filepath)
                 else:
-                    tips = '在该目录（{}）及其子孙目录中没有找到配置文件: {}'.format(start_path, finder.settings_file_name)
+                    tips = '在该目录（{}）及其子孙目录中没有找到配置文件: {}'.format(
+                        start_path, finder.settings_file_name)
                 if print_tips:
                     print(tips)
             test_func.collect_test_datasets(cls, test_func)

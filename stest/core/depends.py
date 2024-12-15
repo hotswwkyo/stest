@@ -7,18 +7,18 @@
 import inspect
 import collections
 from ..utils.attrs_manager import AttributeManager
-from ..utils.attrs_marker import ConstAttributeMarker
+from ..utils.attrs_marker import Const
 
 
 class TestCaseWrapper(AttributeManager):
 
-    SEP = ConstAttributeMarker(".", "id分隔符")
-    SN = ConstAttributeMarker("serial_number", "AbstractTestCase的子类会有个用例序列号属性serial_number，用来实现参数化的")
-    SN_PREFIX = ConstAttributeMarker("_", "serial_number分隔符")
-    PY = ConstAttributeMarker(".py", "Python 模块文件拓展名")
-    SETTINGS_KEY = ConstAttributeMarker("test_method_settings", "测试方法存储设置项的属性名")
-    DEPENDS_KEY = ConstAttributeMarker("depends", "测试方法设置项中设置依赖的键名")
-    DNAME_KEY = ConstAttributeMarker("dname", "测试方法设置命名用于依赖的键名")
+    SEP = Const(".", "id分隔符")
+    SN = Const("serial_number", "AbstractTestCase的子类会有个用例序列号属性serial_number，用来实现参数化的")
+    SN_PREFIX = Const("_", "serial_number分隔符")
+    PY = Const(".py", "Python 模块文件拓展名")
+    SETTINGS_KEY = Const("test_method_settings", "测试方法存储设置项的属性名")
+    DEPENDS_KEY = Const("depends", "测试方法设置项中设置依赖的键名")
+    DNAME_KEY = Const("dname", "测试方法设置命名用于依赖的键名")
 
     def __init__(self, testcase):
 
@@ -192,10 +192,10 @@ class TestCaseWrapper(AttributeManager):
 
 class TestResultFinder(AttributeManager):
 
-    UNRUN_CODE = ConstAttributeMarker(0, "未运行", alias="未运行")
-    PASS_CODE = ConstAttributeMarker(1, "通过", alias="通过")
-    FAIL_CODE = ConstAttributeMarker(2, "失败", alias="失败")
-    ERROR_CODE = ConstAttributeMarker(3, "异常", alias="异常")
+    UNRUN_CODE = Const(0, "未运行", alias="未运行")
+    PASS_CODE = Const(1, "通过", alias="通过")
+    FAIL_CODE = Const(2, "失败", alias="失败")
+    ERROR_CODE = Const(3, "异常", alias="异常")
 
     @classmethod
     def find_test_result(cls, test, results):
@@ -250,6 +250,7 @@ class TestResultFinder(AttributeManager):
 
 class TestDepends(object):
     """ Information about the resolved dependencies of a single test """
+
     def __init__(self, testcase_wrapper, manager):
 
         self.testid = testcase_wrapper.id()
@@ -258,7 +259,8 @@ class TestDepends(object):
 
         for depend in testcase_wrapper.depends:
             if depend not in manager.name_to_testids:
-                absolute_depend = testcase_wrapper.get_absolute_testcase_id(depend, testcase_wrapper.new_id)
+                absolute_depend = testcase_wrapper.get_absolute_testcase_id(
+                    depend, testcase_wrapper.new_id)
                 if absolute_depend in manager.name_to_testids:
                     depend = absolute_depend
 

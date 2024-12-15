@@ -13,7 +13,7 @@ from ..dm import DRIVER_MANAGER
 class AbstractMiniumPage(attrs_manager.AttributeManager):
     """微信小程序抽象根页面"""
 
-    WECHAT_MANAGER = attrs_marker.AttributeMarker(DRIVER_MANAGER, True, "微信小程序测试库minium管理器")
+    WECHAT_MANAGER = attrs_marker.Const(DRIVER_MANAGER, "微信小程序测试库minium管理器")
 
     def __init__(self, url=None, minium_config=None):
         """

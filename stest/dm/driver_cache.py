@@ -50,6 +50,9 @@ class DriverCache(object):
         else:
             raise TypeError('value must be string')
 
+    def had_opened_driver(self):
+        return self._current_driver is not None
+
     @property
     def current_driver(self):
 
@@ -140,7 +143,8 @@ class DriverCache(object):
 
         for index, driver in enumerate(self._all_drivers):
             if driver not in self._closed_drivers:
-                self._call_method(driver, self._quit_methods.get(str(index + 1), self.default_quit_method))
+                self._call_method(driver, self._quit_methods.get(
+                    str(index + 1), self.default_quit_method))
         self.clear_empty_cache()
         return self._current_driver
 

@@ -4,13 +4,11 @@
 @Author: 思文伟
 '''
 
-import sys
+
 import xlrd
 from ..utils import sutils
-from .attrs_marker import ConstAttributeMarker
+from .attrs_marker import Const
 from .attrs_manager import AttributeManager
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 
 class TestCaseBlock(AttributeManager):
@@ -23,19 +21,21 @@ class TestCaseBlock(AttributeManager):
     第三行 开始 每一行都是一组完整的测试数据直至遇见空行或者下一个数据块
     """
 
-    UTF_8 = ConstAttributeMarker("UTF-8", "UTF-8字符编码")
-    EMPTY_STRING = ConstAttributeMarker("", "空字符串")
-    XL_CELL_EMPTY = ConstAttributeMarker(0, "Python value：empty string ''")
-    XL_CELL_TEXT = ConstAttributeMarker(1, "Python value：a Unicode string")
-    XL_CELL_NUMBER = ConstAttributeMarker(2, "Python value：float")
-    XL_CELL_DATE = ConstAttributeMarker(3, "Python value：float")
-    XL_CELL_BOOLEAN = ConstAttributeMarker(4, "Python value：int; 1 means TRUE, 0 means FALSE")
-    XL_CELL_ERROR = ConstAttributeMarker(5, "Python value：int representing internal Excel codes; for a text representation, refer to the supplied dictionary error_text_from_code")
-    XL_CELL_BLANK = ConstAttributeMarker(6, "Python value：empty string ''. Note: this type will appear only when open_workbook(..., formatting_info=True) is used.")
+    UTF_8 = Const("UTF-8", "UTF-8字符编码")
+    EMPTY_STRING = Const("", "空字符串")
+    XL_CELL_EMPTY = Const(0, "Python value：empty string ''")
+    XL_CELL_TEXT = Const(1, "Python value：a Unicode string")
+    XL_CELL_NUMBER = Const(2, "Python value：float")
+    XL_CELL_DATE = Const(3, "Python value：float")
+    XL_CELL_BOOLEAN = Const(4, "Python value：int; 1 means TRUE, 0 means FALSE")
+    XL_CELL_ERROR = Const(
+        5, "Python value：int representing internal Excel codes; for a text representation, refer to the supplied dictionary error_text_from_code")
+    XL_CELL_BLANK = Const(
+        6, "Python value：empty string ''. Note: this type will appear only when open_workbook(..., formatting_info=True) is used.")
 
-    NAME_ROW_INDEX = ConstAttributeMarker(0, "例块中名称行索引")
-    TITLE_ROW_INDEX = ConstAttributeMarker(1, "用例块中数据标题索引")
-    MIN_NUMBER_OF_ROWS = ConstAttributeMarker(3, "用例区域至少需要的行数")
+    NAME_ROW_INDEX = Const(0, "例块中名称行索引")
+    TITLE_ROW_INDEX = Const(1, "用例块中数据标题索引")
+    MIN_NUMBER_OF_ROWS = Const(3, "用例区域至少需要的行数")
 
     def __init__(self, flag_column_index=0):
         """
@@ -148,7 +148,8 @@ class TestCaseBlock(AttributeManager):
                     elif value_cell.ctype == self.XL_CELL_EMPTY or value_cell.ctype == self.XL_CELL_BLANK:
                         value = value_cell.value
                     else:
-                        raise Warning("用例(%s)数据单元格(%s行%s列)类型必须是文本类型" % (self.testcase_name, index_in_excel_file + 1, title_cell_index + 1))
+                        raise Warning("用例(%s)数据单元格(%s行%s列)类型必须是文本类型" % (
+                            self.testcase_name, index_in_excel_file + 1, title_cell_index + 1))
                     one_row_data.append({title: value})
                 all_row_data.append(one_row_data)
         return all_row_data
@@ -171,17 +172,19 @@ class TestCaseExcelFileReader(AttributeManager):
         sheet_index_or_name: 工作表索引或者名称
     """
 
-    UTF_8 = ConstAttributeMarker("UTF-8", "UTF-8字符编码")
-    EMPTY_STRING = ConstAttributeMarker("", "空字符串")
-    XL_CELL_EMPTY = ConstAttributeMarker(0, "Python value：empty string ''")
-    XL_CELL_TEXT = ConstAttributeMarker(1, "Python value：a Unicode string")
-    XL_CELL_NUMBER = ConstAttributeMarker(2, "Python value：float")
-    XL_CELL_DATE = ConstAttributeMarker(3, "Python value：float")
-    XL_CELL_BOOLEAN = ConstAttributeMarker(4, "Python value：int; 1 means TRUE, 0 means FALSE")
-    XL_CELL_ERROR = ConstAttributeMarker(5, "Python value：int representing internal Excel codes; for a text representation, refer to the supplied dictionary error_text_from_code")
-    XL_CELL_BLANK = ConstAttributeMarker(6, "Python value：empty string ''. Note: this type will appear only when open_workbook(..., formatting_info=True) is used.")
-    DEFAULT_SHEET_INDEX = ConstAttributeMarker(0, "默认取excel的工作表索引")
-    DEFAULT_TESTCASE_BLOCK_SEPARATORS = ConstAttributeMarker("用例名称", "默认用例分割标记")
+    UTF_8 = Const("UTF-8", "UTF-8字符编码")
+    EMPTY_STRING = Const("", "空字符串")
+    XL_CELL_EMPTY = Const(0, "Python value：empty string ''")
+    XL_CELL_TEXT = Const(1, "Python value：a Unicode string")
+    XL_CELL_NUMBER = Const(2, "Python value：float")
+    XL_CELL_DATE = Const(3, "Python value：float")
+    XL_CELL_BOOLEAN = Const(4, "Python value：int; 1 means TRUE, 0 means FALSE")
+    XL_CELL_ERROR = Const(
+        5, "Python value：int representing internal Excel codes; for a text representation, refer to the supplied dictionary error_text_from_code")
+    XL_CELL_BLANK = Const(
+        6, "Python value：empty string ''. Note: this type will appear only when open_workbook(..., formatting_info=True) is used.")
+    DEFAULT_SHEET_INDEX = Const(0, "默认取excel的工作表索引")
+    DEFAULT_TESTCASE_BLOCK_SEPARATORS = Const("用例名称", "默认用例分割标记")
 
     def __init__(self, filepath, testcase_block_separators="用例名称", testcase_block_separators_column_index=0, sheet_index_or_name=0):
         """ 用例数据文件读取器
@@ -193,9 +196,12 @@ class TestCaseExcelFileReader(AttributeManager):
         """
 
         self.filepath = filepath
-        self.testcase_block_separators = testcase_block_separators if (isinstance(testcase_block_separators, str) and testcase_block_separators) else self.DEFAULT_TESTCASE_BLOCK_SEPARATORS
-        self.testcase_block_separators_column_index = testcase_block_separators_column_index if sutils.is_positive_integer(testcase_block_separators_column_index) else 0
-        self.sheet_index_or_name = sheet_index_or_name if sutils.is_positive_integer(sheet_index_or_name) else self.DEFAULT_SHEET_INDEX
+        self.testcase_block_separators = testcase_block_separators if (isinstance(
+            testcase_block_separators, str) and testcase_block_separators) else self.DEFAULT_TESTCASE_BLOCK_SEPARATORS
+        self.testcase_block_separators_column_index = testcase_block_separators_column_index if sutils.is_positive_integer(
+            testcase_block_separators_column_index) else 0
+        self.sheet_index_or_name = sheet_index_or_name if sutils.is_positive_integer(
+            sheet_index_or_name) else self.DEFAULT_SHEET_INDEX
 
         self.open()
         self.select_sheet(self.sheet_index_or_name)

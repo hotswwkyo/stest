@@ -4,9 +4,9 @@
 @Author: 思文伟
 @Date: 2022/03/18 13:51:38
 '''
-
 from ..utils import sutils
-from ..utils import attrs_marker
+from ..conf import settings
+from ..utils.attrs_marker import Const
 from ..utils import attrs_manager
 from .driver_cache import DriverCache
 from ..pylibs.lazy_libs import LazyLibs
@@ -15,22 +15,23 @@ from .wechat_minium_proxy import WechatMiniumProxy
 
 class DriverManager(attrs_manager.AttributeManager):
 
-    CHROME = attrs_marker.ConstAttributeMarker("chrome", "谷歌浏览器")
-    FIREFOX = attrs_marker.ConstAttributeMarker("firefox", "火狐浏览器")
-    EDGE = attrs_marker.ConstAttributeMarker("edge", "Edge浏览器")
-    IE = attrs_marker.ConstAttributeMarker("ie", "IE浏览器")
-    OPERA = attrs_marker.ConstAttributeMarker("opera", "欧朋（Opera）浏览器")
-    SAFARI = attrs_marker.ConstAttributeMarker("safari", "Safari浏览器")
-    BLACKBERRY = attrs_marker.ConstAttributeMarker("blackberry", "黑莓")
-    PHANTOMJS = attrs_marker.ConstAttributeMarker("phantomjs", "PhantomJS 是一个无界面的webkit内核浏览器")
-    ANDROID = attrs_marker.ConstAttributeMarker("android", "安卓")
-    WEBKITGTK = attrs_marker.ConstAttributeMarker("webkitgtk", "WebKitGTK")
-    SELENIUM_WEBDRIVER_REMOTE = attrs_marker.ConstAttributeMarker("selenium.webdriver.Remote", "调用selenium.webdriver.Remote的名称")
-    APPIUM_WEBDRIVER_REMOTE = attrs_marker.ConstAttributeMarker("appium", "调用appium.webdriver.Remote的名称")
-    WINDOW_APP = attrs_marker.ConstAttributeMarker("winapp", "window操作系统应用")
-    WINDOW_DESKTOP = attrs_marker.ConstAttributeMarker("windesktop", "window操作系统桌面")
-    DESKTOP_ALIAS = attrs_marker.AttributeMarker("WindowDesktop", True, "创建的window桌面会话默认别名")
-    WECHAT_ALIAS = attrs_marker.AttributeMarker("wechat", True, "微信小程序minium会话默认别名")
+    CHROME = Const("chrome", "谷歌浏览器")
+    FIREFOX = Const("firefox", "火狐浏览器")
+    EDGE = Const("edge", "Edge浏览器")
+    IE = Const("ie", "IE浏览器")
+    OPERA = Const("opera", "欧朋（Opera）浏览器")
+    SAFARI = Const("safari", "Safari浏览器")
+    BLACKBERRY = Const("blackberry", "黑莓")
+    PHANTOMJS = Const("phantomjs", "PhantomJS 是一个无界面的webkit内核浏览器")
+    ANDROID = Const("android", "安卓")
+    WEBKITGTK = Const("webkitgtk", "WebKitGTK")
+    SELENIUM_WEBDRIVER_REMOTE = Const("selenium.webdriver.Remote", "调用selenium.webdriver.Remote的名称")
+    APPIUM_WEBDRIVER_REMOTE = Const("appium", "调用appium.webdriver.Remote的名称")
+    WINDOW_APP = Const("winapp", "window操作系统应用")
+    WINDOW_DESKTOP = Const("windesktop", "window操作系统桌面")
+    DESKTOP_ALIAS = Const("WindowDesktop", "创建的window桌面会话默认别名")
+    WECHAT_ALIAS = Const("wechat", "微信小程序minium会话默认别名")
+    KEY_IN_SETTINGS = Const("DRIVER_MANAGER", "驱动管理器(即DriverManager实例)在全局配置(settings)中的键名")
 
     def __init__(self, script_timeout=5.0, implicit_wait_timeout=0.0):
         """
@@ -44,18 +45,30 @@ class DriverManager(attrs_manager.AttributeManager):
 
         self.script_timeout = script_timeout
         self.implicit_wait_timeout = implicit_wait_timeout
-        self._driver_cache = DriverCache()
+        self.__save_to_global_settings()
+        self.__cache = DriverCache()
+        self.__name2class = {}
+
+    def __save_to_global_settings(self):
+
+        dm = getattr(settings, self.KEY_IN_SETTINGS, None)
+        if not isinstance(dm, DriverManager):
+            setattr(settings, self.KEY_IN_SETTINGS, self)
+
+    @property
+    def cache(self):
+        return self.__cache
 
     @property
     def index(self):
         """返回当前驱动实例索引"""
-        return self._driver_cache.current_index
+        return self.__cache.current_index
 
     @property
     def driver(self):
         """返回当前驱动实例"""
 
-        return self._driver_cache.current_driver
+        return self.__cache.current_driver
 
     def open_url(self, url):
         """Loads a web page in the current browser session."""
@@ -64,20 +77,20 @@ class DriverManager(attrs_manager.AttributeManager):
 
     def register_driver(self, driver, alias=None, quit_method=None):
 
-        return self._driver_cache.register_driver(driver, alias, quit_method)
+        return self.__cache.register_driver(driver, alias, quit_method)
 
     def switch_driver(self, index_or_alias):
 
-        return self._driver_cache.switch_driver(index_or_alias)
+        return self.__cache.switch_driver(index_or_alias)
 
     def close_driver(self):
         """关闭当前驱动"""
 
-        return self._driver_cache.close_driver()
+        return self.__cache.close_driver()
 
     def close_all_drivers(self):
 
-        return self._driver_cache.close_all_drivers()
+        return self.__cache.close_all_drivers()
 
     def set_script_timeout(self, time_to_wait):
         return self.driver.set_script_timeout(time_to_wait)
@@ -99,22 +112,45 @@ class DriverManager(attrs_manager.AttributeManager):
             appium.webdriver
         """
 
-        index = self._driver_cache.get_index(alias)
+        index = self.__cache.get_index(alias)
         if index:
             self.switch_driver(alias)
             return index
         driver = LazyLibs.Appium().webdriver.Remote(*appdriver_args, **appdriver_kwargs)
         # print('Opened application with session id %s' % driver.session_id)
         try:
-            driver.set_script_timeout(self.script_timeout if script_timeout is None else script_timeout)
+            driver.set_script_timeout(
+                self.script_timeout if script_timeout is None else script_timeout)
         except LazyLibs.Selenium().exceptions.WebDriverException:
             pass
-        driver.implicitly_wait(self.implicit_wait_timeout if implicit_wait_timeout is None else implicit_wait_timeout)
+        driver.implicitly_wait(
+            self.implicit_wait_timeout if implicit_wait_timeout is None else implicit_wait_timeout)
         return self.register_driver(driver, alias, quit_method)
 
     open_app = create_appdriver
 
     create_win_app_driver = create_appdriver
+
+    @property
+    def name2class_of_selenium(self):
+        """browser name map driver class of selenium support browser. it will be use in create browser driver of selenium test lib."""
+        return self.__name2class
+
+    def set_name2class_maps(self, browser, browser_driver_class):
+        """set browser name map driver class of selenium support browser. it will be use in create browser driver of selenium test lib.
+
+        Args:
+            browser: name of selenium support browser
+            browser_driver_class: browser driver class of selenium test lib
+        """
+        self.name2class_of_selenium.update({browser: browser_driver_class})
+
+    def remove_name2class_maps(self, browser=None):
+
+        if browser:
+            self.name2class_of_selenium.pop(browser, None)
+        else:
+            self.name2class_of_selenium.clear()
 
     def create_webdriver(self, browser=None, alias=None, quit_method=None, script_timeout=None, implicit_wait_timeout=None, *webdriver_args, **webdriver_kwargs):
         """如果在缓存中已存在该别名的驱动实例，则不会创建，而只会把当前驱动实例指向该别名驱动实例，返回该别名驱动实例的索引号
@@ -132,7 +168,7 @@ class DriverManager(attrs_manager.AttributeManager):
         """
 
         wd = LazyLibs.Selenium().webdriver
-        index = self._driver_cache.get_index(alias)
+        index = self.__cache.get_index(alias)
         if index:
             self.switch_driver(alias)
             return index
@@ -154,12 +190,13 @@ class DriverManager(attrs_manager.AttributeManager):
             clazz.SELENIUM_WEBDRIVER_REMOTE: wd.Remote
         }
         classmaps = {k.lower(): v for k, v in classmaps.items()}
-        driverclass = classmaps.get(browser, None)
+        driverclass = classmaps.get(browser, self.name2class_of_selenium.get(browser, None))
         if driverclass is None:
             raise ValueError('{} is not a supported browser.'.format(browser))
         driver = driverclass(*webdriver_args, **webdriver_kwargs)
         driver.set_script_timeout(self.script_timeout if script_timeout is None else script_timeout)
-        driver.implicitly_wait(self.implicit_wait_timeout if implicit_wait_timeout is None else implicit_wait_timeout)
+        driver.implicitly_wait(
+            self.implicit_wait_timeout if implicit_wait_timeout is None else implicit_wait_timeout)
         return self.register_driver(driver, alias, quit_method)
 
     def open_browser(self, name, url=None, alias=None, *args, **kwargs):
@@ -170,7 +207,8 @@ class DriverManager(attrs_manager.AttributeManager):
         implicit_wait_timeout = kwargs.pop("implicit_wait_timeout", None)
         webdriver_kwargs = kwargs
         if sutils.is_string(name):
-            index = self.create_webdriver(name, alias, quit_method, script_timeout, implicit_wait_timeout, *webdriver_args, **webdriver_kwargs)
+            index = self.create_webdriver(
+                name, alias, quit_method, script_timeout, implicit_wait_timeout, *webdriver_args, **webdriver_kwargs)
             if url is not None:
                 self.open_url(url)
             return index
@@ -206,8 +244,10 @@ class DriverManager(attrs_manager.AttributeManager):
         try:
             self.switch_driver(alias)
         except RuntimeError:
-            desktop_capabilities = dict({"app": "Root", "platformName": "Windows", "deviceName": "Windows", "alias": alias, "newCommandTimeout": 3600, "forceMjsonwp": True})
-            self.create_win_app_driver(alias=alias, command_executor=remote_url, desired_capabilities=desktop_capabilities)
+            desktop_capabilities = dict({"app": "Root", "platformName": "Windows", "deviceName": "Windows",
+                                        "alias": alias, "newCommandTimeout": 3600, "forceMjsonwp": True})
+            self.create_win_app_driver(alias=alias, command_executor=remote_url,
+                                       desired_capabilities=desktop_capabilities)
         return self.index
 
     def open_window_app(self, remote_url, alias=None, *args, **kwargs):
@@ -225,20 +265,23 @@ class DriverManager(attrs_manager.AttributeManager):
     def create_driver(self, driver_name, alias=None, *driver_args, **driver_kwargs):
 
         clazz = self.__class__
-        web_driver_names = [clazz.CHROME, clazz.FIREFOX, clazz.EDGE, clazz.IE, clazz.OPERA, clazz.SAFARI, clazz.BLACKBERRY, clazz.PHANTOMJS, clazz.ANDROID, clazz.WEBKITGTK, clazz.SELENIUM_WEBDRIVER_REMOTE]
+        web_driver_names = [clazz.CHROME, clazz.FIREFOX, clazz.EDGE, clazz.IE, clazz.OPERA, clazz.SAFARI,
+                            clazz.BLACKBERRY, clazz.PHANTOMJS, clazz.ANDROID, clazz.WEBKITGTK, clazz.SELENIUM_WEBDRIVER_REMOTE]
         app_driver_names = [clazz.APPIUM_WEBDRIVER_REMOTE]
         win_app_driver_names = [clazz.WINDOW_APP]
         win_desktop_driver_names = [clazz.WINDOW_DESKTOP]
-
+        web_driver_names.extend(list(self.name2class_of_selenium.keys()))
         if driver_name in web_driver_names:
             self.open_browser(driver_name, alias=alias, *driver_args, **driver_kwargs)
         elif driver_name in app_driver_names:
             self.create_appdriver(alias, *driver_args, **driver_kwargs)
         elif driver_name in win_app_driver_names:
-            remote_url = driver_kwargs.pop("remote_url", driver_kwargs.get("command_executor", None))
+            remote_url = driver_kwargs.pop(
+                "remote_url", driver_kwargs.get("command_executor", None))
             self.open_window_app(remote_url, alias, *driver_args, **driver_kwargs)
         elif driver_name in win_desktop_driver_names:
-            remote_url = driver_kwargs.pop("remote_url", driver_kwargs.get("command_executor", None))
+            remote_url = driver_kwargs.pop(
+                "remote_url", driver_kwargs.get("command_executor", None))
             self.open_desktop_session(driver_kwargs.get(remote_url, None), alias)
         else:
             values = []
@@ -246,7 +289,8 @@ class DriverManager(attrs_manager.AttributeManager):
             values.extend(app_driver_names)
             values.extend(win_app_driver_names)
             values.extend(win_desktop_driver_names)
-            raise ValueError('{} is a invalid name,vaild value range is: {}'.format(driver_name, values))
+            raise ValueError(
+                '{} is a invalid name,vaild value range is: {}'.format(driver_name, values))
 
     def open_wechat_minium(self, minium_config=None):
 
@@ -260,6 +304,36 @@ class DriverManager(attrs_manager.AttributeManager):
 
     def switch_to_wechat_minium(self):
         return self.switch_driver(self.WECHAT_ALIAS)
+
+    def create_playwright_driver(self, browser_type="chromium", alias=None, *, playwright=None, browser_launch_args={}, browser_context_args={}):
+        """创建playwright驱动
+
+        Args
+        -------
+        browser_type : str  default value is `chromium`
+            chromium | firefox | webkit
+        alias : 缓存中存放驱动实例的别名
+        playwright : playwright实例，默认为None，框架自动创建
+        browser_launch_args : dict
+            key value pairs same as Parameters of `BrowserType.launch`
+        browser_context_args : dict
+            key value pairs same as Parameters of `Browser.new_context`
+
+        """
+
+        # import importlib
+        # playwright_driver = importlib.import_module(".playwright_driver", package="stest.dm")
+        from .playwright_driver import PlaywrightDriver
+        quit_method = "quit"
+        index = self.cache.get_index(alias)
+        if index:
+            self.switch_driver(alias)
+            return index
+        # driver = playwright_driver.PlaywrightDriver(playwright)
+        driver = PlaywrightDriver(playwright)
+        driver.open_browser(browser_type=browser_type, browser_launch_args=browser_launch_args,
+                            browser_context_args=browser_context_args)
+        return self.register_driver(driver, alias, quit_method)
 
 
 DRIVER_MANAGER = DriverManager()

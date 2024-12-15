@@ -6,22 +6,23 @@
 
 import os
 from ..utils import sutils
-from ..utils.attrs_marker import AttributeMarker
+from ..utils.attrs_marker import Const
 from .abstract_data_provider import AbsractDataProvider
 from ..utils.excel_file_reader import TestCaseExcelFileReader as ExcelReader
 
 
 class SevenDataProvider(AbsractDataProvider):
 
-    FILE_EXT = AttributeMarker(".xlsx", True, "数据文件拓展名")
-    BLOCK_FLAG = AttributeMarker("用例名称", True, "用例分隔标记")
-    DEFAULT_SHEET_INDEX = AttributeMarker(0, True, "默认从索引为0的工作表读取数据")
+    FILE_EXT = Const(".xlsx", "数据文件拓展名")
+    BLOCK_FLAG = Const("用例名称", "用例分隔标记")
+    DEFAULT_SHEET_INDEX = Const(0, "默认从索引为0的工作表读取数据")
 
     # get_datasets方法变长字典参数kwargs接收的参数的键名
-    PARAM_DATA_FILE_NAME = AttributeMarker("data_file_name", True, "数据文件名称参数")
-    PARAM_DATA_FILE_DIR_PATH = AttributeMarker("data_file_dir_path", True, "数据文件所在目录路径参数")
-    PARAM_SHEET_NAME_OR_INDEX = AttributeMarker("sheet_name_or_index", True, "数据文件中数据所在的工作表索引(从0开始)或名称参数")
-    KWARGS_NAMES = AttributeMarker((PARAM_DATA_FILE_NAME, PARAM_DATA_FILE_DIR_PATH, PARAM_SHEET_NAME_OR_INDEX), True, "接收的参数名")
+    PARAM_DATA_FILE_NAME = Const("data_file_name", "数据文件名称参数")
+    PARAM_DATA_FILE_DIR_PATH = Const("data_file_dir_path", "数据文件所在目录路径参数")
+    PARAM_SHEET_NAME_OR_INDEX = Const("sheet_name_or_index", "数据文件中数据所在的工作表索引(从0开始)或名称参数")
+    KWARGS_NAMES = Const((PARAM_DATA_FILE_NAME, PARAM_DATA_FILE_DIR_PATH,
+                         PARAM_SHEET_NAME_OR_INDEX), "接收的参数名")
 
     def _get_data_file_name(self, kwargs, default_value=None):
 
@@ -80,7 +81,8 @@ class SevenDataProvider(AbsractDataProvider):
         dirpath = self._get_data_file_dir_path(kwargs)
         full_file_path = self._build_file_full_path(dirpath, filename)
 
-        reader = ExcelReader(full_file_path, testcase_block_separators=self.BLOCK_FLAG, sheet_index_or_name=self._get_sheet_name_or_index(kwargs))
+        reader = ExcelReader(full_file_path, testcase_block_separators=self.BLOCK_FLAG,
+                             sheet_index_or_name=self._get_sheet_name_or_index(kwargs))
         datas_blocks = reader.load_testcase_data()
         for block in datas_blocks:
             if block.name == test_method_name:

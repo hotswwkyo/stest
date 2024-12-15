@@ -6,9 +6,11 @@
 
 import os
 import inspect
+import warnings
 import functools
 import collections.abc as collections
 
+from stest.core.errors import StestDeprecationWarning
 from ..conf import settings as SETTINGS
 from .abstract_data_provider import AbsractDataProvider
 from .seven_data_provider import SevenDataProvider
@@ -17,48 +19,57 @@ from .seven_data_provider import SevenDataProvider
 class Test(object):
     """将方法标记为测试方法
 
-    Args:
-        settings: 设置项, 键定义如下
-            author: 用例编写者
-            editors: 修改者列表
-            dname: 用于给用例起一个用于设置依赖的名称
-            depends: 用于设置用例依赖，是一个用例依赖列表
-            groups: 方法所属的组的列表
-            enabled: 是否启用执行该测试方法
-            priority: 测试方法的执行优先级，数值越小执行越靠前
-            alway_run: 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False
-            description: 测试用例名称
-            data_provider: 测试方法的参数化数据提供者，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表
-            测试方法只有一个参数化时，data_provider 返回值是 一维列表，如:
-                def ia_data_provider(testclass, testmethod, *args, **kwargs):
-                    return [1,2,3,4,5]
-                @testcase(priority=1, enabled=True, data_provider=ia_data_provider, author='思文伟', description='整数加法测试01')
-                def integer_addition_01(self, testdata):
-                    print(testdata)
+    Args
+    -------
+    settings: 设置项, 键定义如下
+        - name: 测试用例名称
+        - author: 用例编写者
+        - editors: 修改者列表
+        - dname: 用于给用例起一个用于设置依赖的名称
+        - depends: 用于设置用例依赖，是一个用例依赖列表
+        - groups: 方法所属的组的列表
+        - enabled: 是否启用执行该测试方法
+        - priority: 测试方法的执行优先级，数值越小执行越靠前
+        - alway_run: 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False
+        - description: 原用于设置测试用例名称，现在该参数未做任何用途
+        - screenshot: 测试失败是否截图，如果不传该参数，则取全局配置的设置
+        - attach_screenshot_to_report: 是否附加测试失败的截图到测试报告中，如果不传该参数，则取全局配置的设置
+        - last_modifyied_by: 最后修改者
+        - last_modified_time: 最后一次修改的时间
+        - enable_default_data_provider: 是否使用内置数据提供者(SevenDataProvider)，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider)
+        - data_provider_args: 数据提供者变长位置参数(args)
+        - data_provider_kwargs: 数据提供者变长关键字参数(kwargs)
+        - data_provider: 测试方法的参数化数据提供者，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表
+        测试方法只有一个参数化时，data_provider 返回值是 一维列表，如:
 
-            测试方法有多个参数化时，data_provider 返回值是 二维列表，如:
-                def ia_data_provider(testclass, testmethod, *args, **kwargs):
-                    return [[1,2],[3,4],[5,6]]
-                @testcase(priority=1, enabled=True, data_provider=ia_data_provider, author='思文伟', description='整数加法测试01')
-                def integer_addition_01(self, testdata01, testdata_02):
-                    print(testdata01)
-                    print(testdata_02)
+        ```py
+        def ia_data_provider(testclass, testmethod, *args, **kwargs):
+            return [1,2,3,4,5]
 
-            data_provider_args: 数据提供者变长位置参数(args)
-            data_provider_kwargs: 数据提供者变长关键字参数(kwargs)
-            screenshot: 测试失败是否截图，如果不传该参数，则取全局配置的设置
-            attach_screenshot_to_report: 是否附加测试失败的截图到测试报告中，如果不传该参数，则取全局配置的设置
-            last_modifyied_by: 最后修改者
-            last_modified_time: 最后一次修改的时间
-            enable_default_data_provider: 是否使用内置数据提供者(SevenDataProvider)，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider)
+        @testcase(priority=1, enabled=True, data_provider=ia_data_provider, name='整数加法测试01')
+        def integer_addition_01(self, testdata):
+            print(testdata)
+
+        测试方法有多个参数化时，data_provider 返回值是 二维列表，如:
+
+        def ia_data_provider(testclass, testmethod, *args, **kwargs):
+            return [[1,2],[3,4],[5,6]]
+
+        @testcase(priority=1, enabled=True, data_provider=ia_data_provider, name='整数加法测试01')
+        def integer_addition_01(self, testdata01, testdata_02):
+            print(testdata01)
+            print(testdata_02)
+        ```
     """
 
     # 添加到测试方法的属性名
     TEST_MARKER = 'test_settings'  # 属性值是一个字典
     COLLECT_TEST_DATASETS = 'collect_test_datasets'  # 一个函数，搜集该方法的参数化测试数据
-    ORIGINAL_TEST_METHOD_ARGSPEC = 'original_test_method_argspec'  # inspect.getfullargspec(original_test_method)
+    # inspect.getfullargspec(original_test_method)
+    ORIGINAL_TEST_METHOD_ARGSPEC = 'original_test_method_argspec'
 
     # TEST_MARKER键名
+    NAME = "name"
     AUTHOR = 'author'
     DNAME = 'dname'  # 该键名用于给用例起一个用于设置依赖的名称
     DEPENDS = 'depends'  # 该键名用于设置用例依赖，是一个用例依赖列表
@@ -92,15 +103,19 @@ class Test(object):
     # 默认配置
     DEFAULT_SETTTINGS = {
         GROUPS: [],
+        NAME: "",
         DNAME: "",
         DEPENDS: [],
         ENABLED: True,
         PRIORITY: 1,
         ALWAY_RUN: False,
-        TEST_CLASS: None,  # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
-        TEST_METHOD: None,  # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
+        # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
+        TEST_CLASS: None,
+        # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
+        TEST_METHOD: None,
         DESCRIPTION: '',
-        TEST_DATASETS: [],  # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
+        # 该值由该类自动设置，不需要用户设置(The value are automatically seted by this class, and do not need to seted by user)
+        TEST_DATASETS: [],
         DATA_PROVIDER: None,
         DATA_PROVIDER_ARGS: (),
         DATA_PROVIDER_KWARGS: {},
@@ -109,10 +124,20 @@ class Test(object):
         LAST_MODIFYIED_BY: '',
         LAST_MODIFYIED_TIME: '',
         ENABLE_DEFAULT_DATA_PROVIDER: True,
-        _FINAL_ENABLE_DEFAULT_DATA_PROVIDER: False,  # 内置标志位，用于判断最终使用的是默认的data provider 还是调用者提供的，该值由该类自动设置，不需要用户设置
+        # 内置标志位，用于判断最终使用的是默认的data provider 还是调用者提供的，该值由该类自动设置，不需要用户设置
+        _FINAL_ENABLE_DEFAULT_DATA_PROVIDER: False,
     }
 
     def __init__(self, **settings):
+        if self.DESCRIPTION in settings.keys():
+            name = settings.get(self.NAME, None)
+            description = settings.get(self.DESCRIPTION, None)
+            if name is None:
+                settings[self.NAME] = description
+            fmt = "the argument {} will be deprecated in future versions, Please use the argument {} instead to set test case name."
+            msg = fmt.format(self.DESCRIPTION, self.NAME)
+            warnings.simplefilter("default", category=StestDeprecationWarning)
+            warnings.warn(msg, category=StestDeprecationWarning, stacklevel=2)
         self.settings = {k: v for k, v in self.DEFAULT_SETTTINGS.items()}
         settings.pop(self.TEST_CLASS, None)
         settings.pop(self.TEST_METHOD, None)
@@ -179,25 +204,30 @@ class Test(object):
                     if SETTINGS.SEVEN_DATA_PROVIDER_DATA_FILE_DIR:
                         dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = SETTINGS.SEVEN_DATA_PROVIDER_DATA_FILE_DIR
                     else:
-                        dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = self.get_testmethod_file_dirpath(testmethod)
+                        dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_DIR_PATH] = self.get_testmethod_file_dirpath(
+                            testmethod)
 
                 # 未提供测试数据文件名称则以测试方法所属的类的类名作为测试数据文件名称
                 if not dp_kwargs.get(SevenDataProvider.PARAM_DATA_FILE_NAME, None):
                     dp_kwargs[SevenDataProvider.PARAM_DATA_FILE_NAME] = testclass.__name__
 
                 self.settings[self.DATA_PROVIDER_KWARGS] = dp_kwargs
-                datasets = data_provider().get_testdatas(testclass.__name__, testmethod.__name__, *self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
+                datasets = data_provider().get_testdatas(testclass.__name__, testmethod.__name__, *
+                                                         self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
             else:
-                datasets = data_provider().get_testdatas(testclass.__name__, testmethod.__name__, *self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
+                datasets = data_provider().get_testdatas(testclass.__name__, testmethod.__name__, *
+                                                         self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
 
         elif self._validate_data_provider(data_provider):
-            datasets = data_provider(testclass.__name__, testmethod.__name__, *self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
+            datasets = data_provider(testclass.__name__, testmethod.__name__, *
+                                     self.settings[self.DATA_PROVIDER_ARGS], **self.settings[self.DATA_PROVIDER_KWARGS])
         else:
             raise TypeError('无效data_provider: {}'.format(data_provider))
 
         if not self._validate_datesets(datasets):
             # 返回的数据集必须是列表或者元祖类型, 实际返回的类型是
-            raise TypeError('{}The returned data set must be a list or tuple type. The actual returned type is: {}'.format(data_provider, type(datasets)))
+            raise TypeError('{}The returned data set must be a list or tuple type. The actual returned type is: {}'.format(
+                data_provider, type(datasets)))
 
         self.settings[self.TEST_DATASETS] = datasets
         return datasets
@@ -238,7 +268,8 @@ class Test(object):
         def _call(*args, **kwargs):
 
             instance = args[0] if len(args) > 0 else None
-            method_instance = instance if instance and self.is_method_instance(instance, func_name) else None
+            method_instance = instance if instance and self.is_method_instance(
+                instance, func_name) else None
 
             # 判断是否调用的时候是否传入实参，无实参（def test_plus(self, testdata) --> self.test_plus()）
             # 则自动获取参数化数据作为实参调用
@@ -292,7 +323,8 @@ class Test(object):
 
             if insert_data:
                 test_datasets = self.settings[self.TEST_DATASETS]
-                runtime_testdatas, found, msg = self._get_runtime_testdatas(test_datasets, method_instance, func_name)
+                runtime_testdatas, found, msg = self._get_runtime_testdatas(
+                    test_datasets, method_instance, func_name)
 
                 if self.settings[self.DATA_PROVIDER]:
                     if found:
@@ -317,7 +349,8 @@ class Test(object):
                                 for i in range(need_params_total):
                                     new_args.insert(insert_pos_index + i, runtime_testdatas[i])
                             else:
-                                raise TypeError('{}() need {} positional argument, but only {} were given'.format(func_name, need_params_total, actual_params_total))
+                                raise TypeError('{}() need {} positional argument, but only {} were given'.format(
+                                    func_name, need_params_total, actual_params_total))
                         else:
                             pass
                     else:
@@ -350,7 +383,8 @@ class Test(object):
                     found = True
                     break
             if not found:
-                msg = 'The parameterized test data for this method({}) was not found'.format(test_method_instance.id())
+                msg = 'The parameterized test data for this method({}) was not found'.format(
+                    test_method_instance.id())
         else:
             pass
         return (runtime_datas, found, msg)

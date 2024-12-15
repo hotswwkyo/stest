@@ -23,8 +23,8 @@ from ..utils.screenshot_capturer import ScreenshotCapturer
 class AbstractPage(attrs_manager.AttributeManager):
     """ 抽象页 """
 
-    DRIVER_MANAGER = attrs_marker.AttributeMarker(DRIVER_MANAGER, True, "Driver管理器")
-    WIN_APP_DRIVER_HELPER = attrs_marker.AttributeMarker(WIN_APP_DRIVER_HELPER, True, "启动和关闭WinAppDriver.exe助手")
+    DRIVER_MANAGER = attrs_marker.Const(DRIVER_MANAGER, "Driver管理器")
+    WIN_APP_DRIVER_HELPER = attrs_marker.Const(WIN_APP_DRIVER_HELPER, "启动和关闭WinAppDriver.exe助手")
 
     def __init__(self, driver=None, alias=None, timeout=0.0, *args, **kwargs):
         """一般不建议创建页面的时候直接创建驱动实例，建议页面实例化后再调用页面提供的相关驱动实例化方法更好
@@ -157,7 +157,8 @@ class AbstractPage(attrs_manager.AttributeManager):
                 self.sleep(splash_delay)
             return self.switch_window_app_by_name(remote_url, alias=alias, window_name=window_name, exact_match=exact_match, desktop_alias=desktop_alias, **desired_capabilities)
         self.driver_manager.open_desktop_session(remote_url, desktop_alias)
-        self.driver_manager.open_window_app(remote_url, alias=alias, desired_capabilities=desired_capabilities)
+        self.driver_manager.open_window_app(
+            remote_url, alias=alias, desired_capabilities=desired_capabilities)
         return self
 
     def switch_window_app_by_window_element(self, remote_url, window_element, alias=None, **kwargs):
@@ -167,7 +168,8 @@ class AbstractPage(attrs_manager.AttributeManager):
         if not window_name:
             msg = 'Error connecting webdriver to window "' + window_name + '". \n'
         else:
-            msg = 'Error connecting webdriver to window(which window element tag name is:{}). \n'.format(window_element.tag_name)
+            msg = 'Error connecting webdriver to window(which window element tag name is:{}). \n'.format(
+                window_element.tag_name)
         window = hex(int(window_element.get_attribute("NativeWindowHandle")))
         if "app" in desired_caps:
             del desired_caps["app"]
@@ -177,7 +179,8 @@ class AbstractPage(attrs_manager.AttributeManager):
             desired_caps["forceMjsonwp"] = True
         desired_caps["appTopLevelWindow"] = window
         try:
-            self.driver_manager.open_window_app(remote_url, alias=alias, desired_capabilities=desired_caps)
+            self.driver_manager.open_window_app(
+                remote_url, alias=alias, desired_capabilities=desired_caps)
         except Exception as e:
             raise WindowNotFound(msg + str(e))
         return self
@@ -193,7 +196,6 @@ class AbstractPage(attrs_manager.AttributeManager):
                 window = self.find_element_by_name(window_locator)
             else:
                 window = self.find_element_by_xpath(window_xpath)
-            # print('Window_name "%s" found.' % window_name)
             window = hex(int(window.get_attribute("NativeWindowHandle")))
         except Exception:
             try:
@@ -201,11 +203,10 @@ class AbstractPage(attrs_manager.AttributeManager):
                     window = self.find_element_by_name(window_locator, timeout=timeout)
                 else:
                     window = self.find_element_by_xpath(window_xpath, timeout=timeout)
-                # print('Window_name "%s" found.' % window_name)
                 window = hex(int(window.get_attribute("NativeWindowHandle")))
             except Exception as e:
-                # print('Closing desktop session.')
-                raise LazyLibs.Selenium().exceptions.NoSuchWindowException('Error finding window "' + window_name + '" in the desktop session. ' 'Is it a top level window handle?' + '. \n' + str(e))
+                msg = 'Error finding window "{}" in the desktop session. Is it a top level window handle? \n {}'
+                raise LazyLibs.Selenium().exceptions.NoSuchWindowException(msg.format(window_name, str(e)))
         if "app" in desired_caps:
             del desired_caps["app"]
         if "platformName" not in desired_caps:
@@ -216,9 +217,11 @@ class AbstractPage(attrs_manager.AttributeManager):
         # global application
         try:
             # print('Connecting to window_name "%s".' % window_name)
-            self.driver_manager.open_window_app(remote_url, alias=alias, desired_capabilities=desired_caps)
+            self.driver_manager.open_window_app(
+                remote_url, alias=alias, desired_capabilities=desired_caps)
         except Exception as e:
-            raise WindowNotFound('Error connecting webdriver to window "' + window_name + '". \n' + str(e))
+            msg = 'Error connecting webdriver to window "{}" .\n {}'
+            raise WindowNotFound(msg.format(window_name, str(e)))
         return self
 
     def create_driver(self, driver_name, alias=None, *driver_args, **driver_kwargs):
@@ -599,7 +602,8 @@ class AbstractPage(attrs_manager.AttributeManager):
             return driver.find_elements(by, locator)
         message = "{} with locator '{}' not found.".format(by, locator)
         try:
-            elements = LazyLibs.Selenium().WebDriverWait(driver, timeout).until(lambda x: x.find_elements(by, locator))
+            elements = LazyLibs.Selenium().WebDriverWait(
+                driver, timeout).until(lambda x: x.find_elements(by, locator))
         except LazyLibs.Selenium().exceptions.TimeoutException as t:
             message = message + "in {timeout}".format(timeout=timeout)
             screen = getattr(t, 'screen', None)

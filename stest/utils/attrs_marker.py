@@ -6,7 +6,7 @@
 '''
 
 
-class AttributeMarker(object):
+class Var(object):
     def __init__(self, value, final=False, description="", *expend_args, **expend_kwargs):
 
         self.value = value
@@ -20,7 +20,7 @@ class AttributeMarker(object):
         return "{value} ------> {description}".format(value=self.value, description=self.description)
 
 
-class ConstAttributeMarker(AttributeMarker):
+class Const(Var):
     def __init__(self, value, description="", *expend_args, **expend_kwargs):
 
-        AttributeMarker.__init__(self, value, True, description, *expend_args, **expend_kwargs)
+        Var.__init__(self, value, True, description, *expend_args, **expend_kwargs)
