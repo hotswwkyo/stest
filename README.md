@@ -635,29 +635,29 @@ class CalculationTest(AbstractTestCase):
 >* 框架内置运行阶段标志见 RunStage类，对应于SevenTestResult的同名方法。编写这些运行阶段的钩子函数时，除了第一个参数为全局变量settings外，其它参数与SevenTestResult的同名方法参数一一对应
 
 #### 示例
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 
-    import stest
-    from stest import hook
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-    from playwright.sync_api import sync_playwright
+import stest
+from stest import hook
+from stest import AbstractTestCase
+from stest import Test as testcase
+from playwright.sync_api import sync_playwright
 
 
-    @hook.wrapper(hook.RunStage.startTestRun)
-    def startTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
-        """Called once before any tests are executed."""
-        conf.playwright = sync_playwright().start()
+@hook.wrapper(hook.RunStage.startTestRun)
+def startTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
+    """Called once before any tests are executed."""
+    conf.playwright = sync_playwright().start()
 
-    @hook.wrapper(hook.RunStage.stopTestRun)
-    def stopTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
-        """Called once after all tests are executed."""
-        playwright = getattr(conf, 'playwright', None)
-        if playwright is not None:
-            playwright.stop()
-    ```
+@hook.wrapper(hook.RunStage.stopTestRun)
+def stopTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
+    """Called once after all tests are executed."""
+    playwright = getattr(conf, 'playwright', None)
+    if playwright is not None:
+        playwright.stop()
+```
 
 
 ## Page object 实现方案
