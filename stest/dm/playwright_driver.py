@@ -8,8 +8,6 @@ from stest import settings
 from stest.core.errors import NoOpendPageError
 from stest.core.errors import NoOpendContextError
 from stest.core.errors import NoOpendBrowserError
-
-
 from playwright.sync_api import Page
 from playwright.sync_api import Browser
 from playwright.sync_api import Playwright
@@ -138,7 +136,7 @@ class PlaywrightDriver(object):
         slow_mo : Union[float, None]
             Slows down Playwright operations by the specified amount of milliseconds. Useful so that you can see what is going on.
         kwargs : dict
-            see more about `BrowserType.launch`
+            refer to the `BrowserType.launch`
         """
 
         self.browser_launch_args.update(dict(headless=headless, channel=channel, slow_mo=slow_mo))
@@ -151,9 +149,9 @@ class PlaywrightDriver(object):
         Args
         -------
         device : str
-            see more about `Playwright.devices`
+            refer to the `Playwright.devices`
         kwargs : dict
-            same as Parameters of `Browser.new_context`
+            refer to the `Browser.new_context`
         """
 
         self.browser_context_args.update(kwargs)
@@ -184,7 +182,13 @@ class PlaywrightDriver(object):
         return getattr(self.playwright, type_name)
 
     def launch_browser(self, browser_type="chromium", browser_launch_args={}):
-        """only open browser, itself context and page is not opened"""
+        """only open browser, itself context and page is not opened
+
+        Parameters
+        ----------
+        browser_type : playwright support browser type, `chromium` | `firefox` | `webkit`, Defaults to `chromium`
+        browser_launch_args : refer to the `BrowserType.launch`
+        """
 
         final_browser_kwargs = copy.deepcopy(self.browser_launch_args)
         final_browser_kwargs.update(browser_launch_args)
@@ -193,6 +197,7 @@ class PlaywrightDriver(object):
         return self
 
     def open_context(self, **browser_context_args):
+        """refer to the `Browser.new_context`"""
 
         final_context_kwargs = copy.deepcopy(self.browser_context_args)
         final_context_kwargs.update(browser_context_args)
@@ -202,7 +207,9 @@ class PlaywrightDriver(object):
     def open_page(self, **browser_context_args):
         """打开新页面，browser_context_args传参，则会创建新的上下文，并在此打开新页面
 
-        browser_context_args: 浏览器上下文参数
+        Parameters
+        ----------
+        browser_context_args: refer to the `Browser.new_context`
         """
 
         if browser_context_args or not self.has_opened_context():
@@ -218,9 +225,9 @@ class PlaywrightDriver(object):
         browser_type : str  default value is `chromium`
             chromium | firefox | webkit
         browser_launch_args : dict
-            key value pairs same as Parameters of `BrowserType.launch`
+            refer to the `BrowserType.launch`
         browser_context_args : dict
-            key value pairs same as Parameters of `Browser.new_context`
+            refer to the `Browser.new_context`
         """
 
         if not self.has_opened_browser():
@@ -283,58 +290,8 @@ class PlaywrightDriver(object):
         return self
 
     def sreenshot(self, **kwargs):
-        """Page.screenshot
+        """refer to the Page.screenshot"""
 
-        Returns the buffer with the captured screenshot.
-
-        Parameters
-        ----------
-        timeout : Union[float, None]
-            Maximum time in milliseconds. Defaults to `30000` (30 seconds). Pass `0` to disable timeout. The default value can
-            be changed by using the `browser_context.set_default_timeout()` or `page.set_default_timeout()` methods.
-        type : Union["jpeg", "png", None]
-            Specify screenshot type, defaults to `png`.
-        path : Union[pathlib.Path, str, None]
-            The file path to save the image to. The screenshot type will be inferred from file extension. If `path` is a
-            relative path, then it is resolved relative to the current working directory. If no path is provided, the image
-            won't be saved to the disk.
-        quality : Union[int, None]
-            The quality of the image, between 0-100. Not applicable to `png` images.
-        omit_background : Union[bool, None]
-            Hides default white background and allows capturing screenshots with transparency. Not applicable to `jpeg` images.
-            Defaults to `false`.
-        full_page : Union[bool, None]
-            When true, takes a screenshot of the full scrollable page, instead of the currently visible viewport. Defaults to
-            `false`.
-        clip : Union[{x: float, y: float, width: float, height: float}, None]
-            An object which specifies clipping of the resulting image.
-        animations : Union["allow", "disabled", None]
-            When set to `"disabled"`, stops CSS animations, CSS transitions and Web Animations. Animations get different
-            treatment depending on their duration:
-            - finite animations are fast-forwarded to completion, so they'll fire `transitionend` event.
-            - infinite animations are canceled to initial state, and then played over after the screenshot.
-
-            Defaults to `"allow"` that leaves animations untouched.
-        caret : Union["hide", "initial", None]
-            When set to `"hide"`, screenshot will hide text caret. When set to `"initial"`, text caret behavior will not be
-            changed.  Defaults to `"hide"`.
-        scale : Union["css", "device", None]
-            When set to `"css"`, screenshot will have a single pixel per each css pixel on the page. For high-dpi devices, this
-            will keep screenshots small. Using `"device"` option will produce a single pixel per each device pixel, so
-            screenshots of high-dpi devices will be twice as large or even larger.
-
-            Defaults to `"device"`.
-        mask : Union[List[Locator], None]
-            Specify locators that should be masked when the screenshot is taken. Masked elements will be overlaid with a pink
-            box `#FF00FF` (customized by `maskColor`) that completely covers its bounding box.
-        mask_color : Union[str, None]
-            Specify the color of the overlay box for masked elements, in
-            [CSS color format](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value). Default color is pink `#FF00FF`.
-
-        Returns
-        -------
-        bytes
-        """
         return self.page.screenshot(**kwargs)
 
     def get_screenshot_as_base64(self):

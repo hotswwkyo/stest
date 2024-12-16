@@ -9,7 +9,8 @@ from ..dm import DRIVER_MANAGER
 from ..dm.driver_manager import DriverManager
 from ..dm.playwright_driver import PlaywrightDriver
 from ..dm.playwright_driver import SupportBrowserType
-from ..dm.playwright_driver import Playwright
+
+from playwright.sync_api import Playwright
 from playwright.sync_api import Locator
 
 PageClass = typing.TypeVar("PageClass", bound="AbstractPlaywrightPage")
@@ -25,11 +26,6 @@ def stopTestRun(gsettings, result):
             setattr(gsettings, PlaywrightDriver.PLAYWRIGHT, None)
 
 
-# rootpage = typing.TypeVar("rootpage", bound="AbstractPlaywrightPage")
-# root_element = typing.TypeVar("root_element", bound="AbstractPlaywrightPage.Elements")
-# root_action = typing.TypeVar("root_action", bound="AbstractPlaywrightPage.Actions")
-
-
 class AbstractPlaywrightPage(attrs_manager.AttributeManager):
     """ 抽象页 """
 
@@ -43,8 +39,8 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         driver_or_browser_type : instance of PlaywrightDriver or browser type  default value is `None`
             support browser type is chromium | firefox | webkit
         alias : 缓存中存放驱动实例的别名
-        browser_launch_args : key value pairs same as Parameters of `BrowserType.launch`
-        browser_context_args : key value pairs same as Parameters of `Browser.new_context`
+        browser_launch_args : refer to the `BrowserType.launch`
+        browser_context_args : refer to the `BrowserType.new_context`
         """
 
         self.__dm = self.__class__.DRIVER_MANAGER
@@ -96,14 +92,15 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         self.driver_manager.open_url(url)
         return self
 
-    def goto(self, url: str,
-             *,
-             timeout: typing.Optional[float] = None,
-             wait_until: typing.Optional[typing.Literal["commit",
-                                                        "domcontentloaded", "load", "networkidle"]] = None,
-             referer: typing.Optional[str] = None,):
+    def close(self, **kwargs):
+        """refer to the `Page.close`"""
 
-        return self.pwpage.goto(url, timeout=timeout, wait_until=wait_until, referer=referer)
+        self.pwpage.close(**kwargs)
+
+    def goto(self, url: str, **kwargs):
+        """refer to the `Page.goto`"""
+
+        return self.pwpage.goto(url, **kwargs)
 
     def __create_driver(self, browser_type=SupportBrowserType.CHROMIUM, alias=None, *, browser_launch_args={}, browser_context_args={}):
         """创建playwright驱动
@@ -114,9 +111,9 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
             chromium | firefox | webkit
         alias : 缓存中存放驱动实例的别名
         browser_launch_args : dict
-            key value pairs same as Parameters of `BrowserType.launch`
+            refer to the `BrowserType.launch`
         browser_context_args : dict
-            key value pairs same as Parameters of `Browser.new_context`
+            refer to the `Browser.new_context`
         """
 
         return self.driver_manager.create_playwright_driver(browser_type=browser_type, alias=alias, browser_launch_args=browser_launch_args, browser_context_args=browser_context_args)
@@ -171,6 +168,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self
 
     def execute_script(self, script, *args):
+        """refer to the `Page.evaluate`"""
 
         return self.driver.page.evaluate(script, args)
 
@@ -198,15 +196,27 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         self.scroll_to(0, 0)
         return self
 
-    def screenshot(self, timeout=None, type=None, path=None, quality=None, omit_background=None,
-                   full_page=None, clip=None, animations=None, caret=None, scale=None, mask=None, mask_color=None, style=None):
-        """call Page.screenshot
+    def screenshot(self, path=None, full_page=None, clip=None, **others):
+        """refer to the `Page.screenshot`
+
+        Returns the buffer with the captured screenshot.
+
+        Parameters
+        ----------
+        path :  Union[pathlib.Path, str, None]
+            The file path to save the image to. The screenshot type will be inferred from file extension. If `path` is a
+            relative path, then it is resolved relative to the current working directory. If no path is provided, the image
+            won't be saved to the disk.
+        full_page : Union[bool, None]
+            When true, takes a screenshot of the full scrollable page, instead of the currently visible viewport. Defaults to `false`.
+        clip : Union[{x: float, y: float, width: float, height: float}, None]
+            An object which specifies clipping of the resulting image.
+        others : refer to the `Page.screenshot`
 
         Usage:
             page.screenshot(path="E:\\SevenPytest\\screenshots\\debug.png")
         """
-        return self.pwpage.screenshot(timeout=timeout, type=type, path=path, quality=quality, omit_background=omit_background, full_page=full_page, clip=clip, animations=animations, caret=caret,
-                                      scale=scale, mask=mask, mask_color=mask_color, style=style)
+        return self.pwpage.screenshot(path=path, full_page=full_page, clip=clip, **others)
 
     @property
     def title(self):
@@ -215,7 +225,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self.driver.page.title()
 
     def frame(self, name=None, *, url=None):
-        """Page.frame
+        """refer to the `Page.frame`
 
         Returns frame matching the specified criteria. Either `name` or `url` must be specified.
 
@@ -236,11 +246,11 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         -------
         Union[Frame, None]
         """
-        return self.driver.page.frame()
+        return self.driver.page.frame(name=name, url=url)
 
     @property
     def main_frame(self):
-        """Page.main_frame
+        """refer to the `Page.main_frame`
 
         The page's main frame. Page is guaranteed to have a main frame which persists during navigations.
 
@@ -251,7 +261,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
     @property
     def frames(self):
-        """Page.frames
+        """refer to the `Page.frames`
 
         An array of all frames attached to the page.
 
@@ -263,15 +273,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self.driver.page.frames
 
     def set_viewport_size(self, viewport_size):
-        """Page.set_viewport_size
-
-        In the case of multiple pages in a single browser, each page can have its own viewport size. However,
-        `browser.new_context()` allows to set viewport size (and more) for all pages in the context at once.
-
-        `page.set_viewport_size()` will resize the page. A lot of websites don't expect phones to change size, so you
-        should set the viewport size before navigating to the page. `page.set_viewport_size()` will also reset
-        `screen` size, use `browser.new_context()` with `screen` and `viewport` parameters if you need better
-        control of these properties.
+        """refer to the `Page.set_viewport_size`
 
         **Usage**
 
@@ -290,7 +292,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self
 
     def viewport_size(self):
-        """Page.viewport_size
+        """refer to the `Page.viewport_size`
 
         Returns
         -------
@@ -298,10 +300,10 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         """
         return self.driver.page.viewport_size
 
-    def refresh(self):
-        """刷新当前页面"""
+    def reload(self, **kwargs):
+        """refer to the `Page.reload`"""
 
-        return self.driver.page.reload()
+        return self.driver.page.reload(**kwargs)
 
     def new_page(self, **browser_context_args):
         """Creates a new page in a new browser context if provide browser_context_args, otherwise creates a new page in current browser context.
@@ -311,128 +313,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         Parameters
         ----------
-        viewport : Union[{width: int, height: int}, None]
-            Sets a consistent viewport for each page. Defaults to an 1280x720 viewport. `no_viewport` disables the fixed
-            viewport. Learn more about [viewport emulation](../emulation.md#viewport).
-        screen : Union[{width: int, height: int}, None]
-            Emulates consistent window screen size available inside web page via `window.screen`. Is only used when the
-            `viewport` is set.
-        no_viewport : Union[bool, None]
-            Does not enforce fixed viewport, allows resizing window in the headed mode.
-        ignore_https_errors : Union[bool, None]
-            Whether to ignore HTTPS errors when sending network requests. Defaults to `false`.
-        java_script_enabled : Union[bool, None]
-            Whether or not to enable JavaScript in the context. Defaults to `true`. Learn more about
-            [disabling JavaScript](../emulation.md#javascript-enabled).
-        bypass_csp : Union[bool, None]
-            Toggles bypassing page's Content-Security-Policy. Defaults to `false`.
-        user_agent : Union[str, None]
-            Specific user agent to use in this context.
-        locale : Union[str, None]
-            Specify user locale, for example `en-GB`, `de-DE`, etc. Locale will affect `navigator.language` value,
-            `Accept-Language` request header value as well as number and date formatting rules. Defaults to the system default
-            locale. Learn more about emulation in our [emulation guide](../emulation.md#locale--timezone).
-        timezone_id : Union[str, None]
-            Changes the timezone of the context. See
-            [ICU's metaZones.txt](https://cs.chromium.org/chromium/src/third_party/icu/source/data/misc/metaZones.txt?rcl=faee8bc70570192d82d2978a71e2a615788597d1)
-            for a list of supported timezone IDs. Defaults to the system timezone.
-        geolocation : Union[{latitude: float, longitude: float, accuracy: Union[float, None]}, None]
-        permissions : Union[Sequence[str], None]
-            A list of permissions to grant to all pages in this context. See `browser_context.grant_permissions()` for
-            more details. Defaults to none.
-        extra_http_headers : Union[Dict[str, str], None]
-            An object containing additional HTTP headers to be sent with every request. Defaults to none.
-        offline : Union[bool, None]
-            Whether to emulate network being offline. Defaults to `false`. Learn more about
-            [network emulation](../emulation.md#offline).
-        http_credentials : Union[{username: str, password: str, origin: Union[str, None], send: Union["always", "unauthorized", None]}, None]
-            Credentials for [HTTP authentication](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication). If no
-            origin is specified, the username and password are sent to any servers upon unauthorized responses.
-        device_scale_factor : Union[float, None]
-            Specify device scale factor (can be thought of as dpr). Defaults to `1`. Learn more about
-            [emulating devices with device scale factor](../emulation.md#devices).
-        is_mobile : Union[bool, None]
-            Whether the `meta viewport` tag is taken into account and touch events are enabled. isMobile is a part of device,
-            so you don't actually need to set it manually. Defaults to `false` and is not supported in Firefox. Learn more
-            about [mobile emulation](../emulation.md#ismobile).
-        has_touch : Union[bool, None]
-            Specifies if viewport supports touch events. Defaults to false. Learn more about
-            [mobile emulation](../emulation.md#devices).
-        color_scheme : Union["dark", "light", "no-preference", "null", None]
-            Emulates [prefers-colors-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme)
-            media feature, supported values are `'light'` and `'dark'`. See `page.emulate_media()` for more details.
-            Passing `'null'` resets emulation to system defaults. Defaults to `'light'`.
-        reduced_motion : Union["no-preference", "null", "reduce", None]
-            Emulates `'prefers-reduced-motion'` media feature, supported values are `'reduce'`, `'no-preference'`. See
-            `page.emulate_media()` for more details. Passing `'null'` resets emulation to system defaults. Defaults to
-            `'no-preference'`.
-        forced_colors : Union["active", "none", "null", None]
-            Emulates `'forced-colors'` media feature, supported values are `'active'`, `'none'`. See
-            `page.emulate_media()` for more details. Passing `'null'` resets emulation to system defaults. Defaults to
-            `'none'`.
-        accept_downloads : Union[bool, None]
-            Whether to automatically download all the attachments. Defaults to `true` where all the downloads are accepted.
-        proxy : Union[{server: str, bypass: Union[str, None], username: Union[str, None], password: Union[str, None]}, None]
-            Network proxy settings to use with this context. Defaults to none.
-        record_har_path : Union[pathlib.Path, str, None]
-            Enables [HAR](http://www.softwareishard.com/blog/har-12-spec) recording for all pages into the specified HAR file
-            on the filesystem. If not specified, the HAR is not recorded. Make sure to call `browser_context.close()`
-            for the HAR to be saved.
-        record_har_omit_content : Union[bool, None]
-            Optional setting to control whether to omit request content from the HAR. Defaults to `false`.
-        record_video_dir : Union[pathlib.Path, str, None]
-            Enables video recording for all pages into the specified directory. If not specified videos are not recorded. Make
-            sure to call `browser_context.close()` for videos to be saved.
-        record_video_size : Union[{width: int, height: int}, None]
-            Dimensions of the recorded videos. If not specified the size will be equal to `viewport` scaled down to fit into
-            800x800. If `viewport` is not configured explicitly the video size defaults to 800x450. Actual picture of each page
-            will be scaled down if necessary to fit the specified size.
-        storage_state : Union[pathlib.Path, str, {cookies: Sequence[{name: str, value: str, domain: str, path: str, expires: float, httpOnly: bool, secure: bool, sameSite: Union["Lax", "None", "Strict"]}], origins: Sequence[{origin: str, localStorage: Sequence[{name: str, value: str}]}]}, None]
-            Learn more about [storage state and auth](../auth.md).
-
-            Populates context with given storage state. This option can be used to initialize context with logged-in
-            information obtained via `browser_context.storage_state()`.
-        base_url : Union[str, None]
-            When using `page.goto()`, `page.route()`, `page.wait_for_url()`,
-            `page.expect_request()`, or `page.expect_response()` it takes the base URL in consideration by
-            using the [`URL()`](https://developer.mozilla.org/en-US/docs/Web/API/URL/URL) constructor for building the
-            corresponding URL. Unset by default. Examples:
-            - baseURL: `http://localhost:3000` and navigating to `/bar.html` results in `http://localhost:3000/bar.html`
-            - baseURL: `http://localhost:3000/foo/` and navigating to `./bar.html` results in
-              `http://localhost:3000/foo/bar.html`
-            - baseURL: `http://localhost:3000/foo` (without trailing slash) and navigating to `./bar.html` results in
-              `http://localhost:3000/bar.html`
-        strict_selectors : Union[bool, None]
-            If set to true, enables strict selectors mode for this context. In the strict selectors mode all operations on
-            selectors that imply single target DOM element will throw when more than one element matches the selector. This
-            option does not affect any Locator APIs (Locators are always strict). Defaults to `false`. See `Locator` to learn
-            more about the strict mode.
-        service_workers : Union["allow", "block", None]
-            Whether to allow sites to register Service workers. Defaults to `'allow'`.
-            - `'allow'`: [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) can be
-              registered.
-            - `'block'`: Playwright will block all registration of Service Workers.
-        record_har_url_filter : Union[Pattern[str], str, None]
-        record_har_mode : Union["full", "minimal", None]
-            When set to `minimal`, only record information necessary for routing from HAR. This omits sizes, timing, page,
-            cookies, security and other types of HAR information that are not used when replaying from HAR. Defaults to `full`.
-        record_har_content : Union["attach", "embed", "omit", None]
-            Optional setting to control resource content management. If `omit` is specified, content is not persisted. If
-            `attach` is specified, resources are persisted as separate files and all of these files are archived along with the
-            HAR file. Defaults to `embed`, which stores content inline the HAR file as per HAR specification.
-        client_certificates : Union[Sequence[{origin: str, certPath: Union[pathlib.Path, str, None], cert: Union[bytes, None], keyPath: Union[pathlib.Path, str, None], key: Union[bytes, None], pfxPath: Union[pathlib.Path, str, None], pfx: Union[bytes, None], passphrase: Union[str, None]}], None]
-            TLS Client Authentication allows the server to request a client certificate and verify it.
-
-            **Details**
-
-            An array of client certificates to be used. Each certificate object must have either both `certPath` and `keyPath`,
-            a single `pfxPath`, or their corresponding direct value equivalents (`cert` and `key`, or `pfx`). Optionally,
-            `passphrase` property should be provided if the certificate is encrypted. The `origin` property should be provided
-            with an exact match to the request origin that the certificate is valid for.
-
-            **NOTE** When using WebKit on macOS, accessing `localhost` will not pick up client certificates. You can make it
-            work by replacing `localhost` with `local.playwright`.
-
+        refer to the `Browser.new_context`
 
         Returns
         -------
@@ -444,7 +325,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self
 
     def content(self):
-        """Page.content
+        """refer to the `Page.content`
 
         Gets the full HTML contents of the current page, including the doctype.
 
@@ -455,8 +336,8 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         return self.driver.page.content()
 
-    def locator(self, selector, *, has_text=None, has_not_text=None, has=None, has_not=None):
-        """Page.locator
+    def locator(self, selector, **kwargs):
+        """refer to the `Page.locator`
 
         The method returns an element locator that can be used to perform actions on this page / frame. Locator is resolved
         to the element immediately before performing an action, so a series of actions on the same locator can in fact be
@@ -496,7 +377,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         Locator
         """
 
-        return self.driver.page.locator(selector, has_text=has_text, has_not_text=has_not_text, has=has, has_not=has_not)
+        return self.driver.page.locator(selector, **kwargs)
 
     def get_by_xpath(self, selector: str):
 
@@ -525,33 +406,28 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         return self.get_by_xpath(selector)
 
     def get_by_text(self, text: typing.Union[str, typing.Pattern[str]], *, exact: typing.Optional[bool] = None):
-        """call  Page.get_by_text
+        """refer to the `Page.get_by_text`
         """
 
         return self.pwpage.get_by_text(text, exact=exact)
 
     def get_by_alt_text(self, text: typing.Union[str, typing.Pattern[str]], *, exact: typing.Optional[bool] = None):
-        """call Page.get_by_alt_text"""
+        """refer to the `Page.get_by_alt_text`"""
 
         return self.pwpage.get_by_alt_text(text, exact=exact)
 
     def frame_locator(self, selector: str):
-        """call Page.frame_locator"""
+        """refer to the `Page.frame_locator`"""
 
         return self.pwpage.frame_locator(selector)
 
     def get_by_title(self, text: typing.Union[str, typing.Pattern[str]], *, exact: typing.Optional[bool] = None):
-        """call Page.get_by_title"""
+        """refer to the `Page.get_by_title`"""
 
         return self.pwpage.get_by_title(text, exact=exact)
 
-    def get_attribute(self, selector: str, name: str, *, strict: typing.Optional[bool] = None, timeout: typing.Optional[float] = None):
-        """call Page.get_attribute"""
-
-        return self.pwpage.get_attribute(selector, name, strict=strict, timeout=timeout)
-
     def get_by_placeholder(self, text: typing.Union[str, typing.Pattern[str]], *, exact: typing.Optional[bool] = None):
-        """call Page.get_by_placeholder"""
+        """refer to the `Page.get_by_placeholder`"""
 
         return self.pwpage.get_by_placeholder(text, exact=exact)
 

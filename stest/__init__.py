@@ -17,7 +17,7 @@
  * 支持灵活控制测试失败自动截图并附加到测试报告中
  * 支持page object模式，内置一套易于维护的解决方案
  * 驱动管理器（DRIVER_MANAGER）更加便捷的管理打开的驱动会话
- * 对selenium、appium、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）做了底层集成支持
+ * 提供selenium、appium、playwright、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）的page object的实现方案
 
 
 Simple usage:
