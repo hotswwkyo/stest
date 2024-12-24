@@ -246,25 +246,16 @@ class AbstractPage(attrs_manager.AttributeManager):
         self.driver_manager.ie(url=url, alias=alias, *args, **kwargs)
         return self
 
-    def chrome(self, url=None, alias=None, **kwargs):
-        """
-        Creates a new instance of the chrome driver.
+    def chrome(self, url=None, alias=None, *args, **kwargs):
+        """Creates a new instance of the chrome driver.
 
         Starts the service and then creates new instance of chrome driver.
 
-        :Args:
-           kwargs:
-            - executable_path - path to the executable. If the default is used it assumes the executable is in the $PATH
-            - port - port you would like the service to run, if left as 0, a free port will be found.
-            - options - this takes an instance of ChromeOptions
-            - service_args - List of args to pass to the driver service
-            - desired_capabilities - Dictionary object with non-browser specific
-            capabilities only, such as "proxy" or "loggingPref".
-            - service_log_path - Where to log information from the driver.
-            - chrome_options - Deprecated argument for options
-            - keep_alive - Whether to configure ChromeRemoteConnection to use HTTP keep-alive.
+        Parameters
+        ----------
+        kwargs : refer to the `selenium.webdriver.Chome`
         """
-        args = ()
+        # args = ()
         self.driver_manager.chrome(url=url, alias=alias, *args, **kwargs)
         return self
 
