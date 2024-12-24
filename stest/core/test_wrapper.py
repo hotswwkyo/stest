@@ -128,6 +128,10 @@ class Test(object):
         _FINAL_ENABLE_DEFAULT_DATA_PROVIDER: False,
     }
 
+    # 不在测试报告中显示测试用例的参数字段(not display parameter fields of testcase in test report)
+    EXCLUDE_PRINT_FIELDS = [NAME, ENABLED, ALWAY_RUN, TEST_CLASS, TEST_METHOD, TEST_DATASETS, SCREENSHOT,
+                            ATTACH_SCREENSHOT_TO_REPORT, ENABLE_DEFAULT_DATA_PROVIDER, _FINAL_ENABLE_DEFAULT_DATA_PROVIDER]
+
     def __init__(self, **settings):
         if self.DESCRIPTION in settings.keys():
             name = settings.get(self.NAME, None)

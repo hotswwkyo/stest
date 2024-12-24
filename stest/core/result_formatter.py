@@ -134,17 +134,8 @@ class TestCaseWrapper(AttributeManager):
         """用例额外信息，如编写者、修改者、最后修改者等"""
 
         tms = getattr(self.test, 'test_method_settings', {})
-        info = {
-            Test.AUTHOR: tms.get(Test.AUTHOR, ""),
-            Test.EDITORS: tms.get(Test.EDITORS, []),
-            Test.LAST_MODIFYIED_BY: tms.get(Test.LAST_MODIFYIED_BY, ""),
-            Test.LAST_MODIFYIED_TIME: tms.get(Test.LAST_MODIFYIED_TIME, ""),
-            "运行编号": self.exec_number,
-            Test.PRIORITY: tms.get(Test.PRIORITY, ""),
-            Test.DNAME: tms.get(Test.DNAME, ""),
-            Test.DEPENDS: tms.get(Test.DEPENDS, ""),
-            Test.GROUPS: tms.get(Test.GROUPS, ""),
-        }
+        info = {k: v for k, v in tms.items() if k not in Test.EXCLUDE_PRINT_FIELDS}
+        info["运行编号"] = self.exec_number
         return info
 
     @property
