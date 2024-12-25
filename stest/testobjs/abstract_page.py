@@ -246,16 +246,37 @@ class AbstractPage(attrs_manager.AttributeManager):
         self.driver_manager.ie(url=url, alias=alias, *args, **kwargs)
         return self
 
-    def chrome(self, url=None, alias=None, *args, **kwargs):
+    def chrome(self, url=None, alias=None, **kwargs):
         """Creates a new instance of the chrome driver.
 
         Starts the service and then creates new instance of chrome driver.
 
         Parameters
         ----------
+        alias: 在缓存中驱动实例的别名，可通过该别名来切换驱动实例，如果在缓存中已存在则直接切换到该实例
         kwargs : refer to the `selenium.webdriver.Chome`
+
+        Usage
+        -----
+        ```py
+        from pages.login_page import LoginPage
+
+        # selenium 3.x
+        from selenium import webdriver
+        options = webdriver.ChromeOptions()
+        chromedriver_path = r\"D:\\chromedriver-win64\\chromedriver.exe\"
+        LoginPage().chrome(executable_path=chromedriver_path, options=options)
+
+        # selenium 4.x
+        # executable_path has been deprecated, please pass in a Service object
+        # In Selenium 4, you’ll need to set the driver’s executable_path from a Service object to prevent deprecation warnings.
+        #  (Or don’t set the path and instead make sure that the driver you need is on the System PATH.)
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        service = ChromeService(executable_path=chromedriver_path)
+        LoginPage().chrome(service=service, options=options)
+        ```
         """
-        # args = ()
+        args = ()
         self.driver_manager.chrome(url=url, alias=alias, *args, **kwargs)
         return self
 

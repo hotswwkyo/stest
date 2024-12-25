@@ -54,7 +54,7 @@ class DriverMap(object):
                 self.__maps[name] = self.Item(name, module, driver)
         return self
 
-    def get(self, name, args, **kwargs):
+    def get(self, name, *args, **kwargs):
         k = "default"
         if k in kwargs:
             item = self.__maps.get(name, kwargs[k])
