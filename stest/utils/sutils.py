@@ -207,7 +207,8 @@ def prompt(title="", tips="", encoding="utf-8"):
     root.update_idletasks()
     # root.deiconify()    #now window size was calculated
     # root.withdraw()     #hide window again
-    root.geometry('%sx%s+%s+%s' % (root.winfo_width() + 10, root.winfo_height() + 10, (screen_width - root.winfo_width()) / 2, (screen_height - root.winfo_height()) / 2))  # center window on desktop
+    root.geometry('%sx%s+%s+%s' % (root.winfo_width() + 10, root.winfo_height() + 10, (screen_width -
+                  root.winfo_width()) / 2, (screen_height - root.winfo_height()) / 2))  # center window on desktop
     root.update()
     root.withdraw()
 
@@ -347,7 +348,8 @@ def send_email(sender, password, subject="自动化测试报告", message="", ma
             altmsg.attach(html)
         att = MIMEText(f_content, "base64", _charset='utf8')
         att["Content-Type"] = 'application/octet-stream;charset=utf-8'
-        att.add_header("Content-Disposition", "attachment", filename=Header(file_name, 'utf-8').encode())
+        att.add_header("Content-Disposition", "attachment",
+                       filename=Header(file_name, 'utf-8').encode())
         # att["Content-Disposition"]  = 'attachment;filename="%s"' % file_name
         # att = MIMEBase('application', 'octet-stream')
         # att.set_payload(f_content)

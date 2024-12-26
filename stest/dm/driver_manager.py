@@ -5,113 +5,15 @@
 @Date: 2022/03/18 13:51:38
 '''
 # import warnings
-import inspect
-import importlib
+
 from ..utils import sutils
+from ..utils import pre_map
 from ..conf import settings
 from ..utils.attrs_marker import Const
 from ..utils import attrs_manager
 from .driver_cache import DriverCache
 from ..pylibs.lazy_libs import LazyLibs
 from .wechat_minium_proxy import WechatMiniumProxy
-
-
-class DriverMap(object):
-
-    def __init__(self):
-        # {name:item} item = Item(name, module, driver)
-        self.__maps = {}
-
-    @property
-    def maps(self):
-        return self.__maps
-
-    @property
-    def names(self):
-
-        return list(self.__maps.keys())
-
-    def exists(self, name):
-        """判断映射是否已经存在"""
-
-        return name in self.__maps
-
-    def add(self, name, module, driver, convert=False):
-        """添加驱动映射
-
-        Parameters
-        ----------
-        name: 映射名
-        module: 可导入驱动的模块对象或者 可导入路径字符串
-        driver: 驱动类对象或者类名
-        convert: 映射已经存在是否覆盖，True -> 覆盖  False -> 不覆盖 , 默认为False
-        """
-
-        if convert:
-            self.__maps[name] = self.Item(name, module, driver)
-        else:
-            if not self.exists(name):
-                self.__maps[name] = self.Item(name, module, driver)
-        return self
-
-    def get(self, name, *args, **kwargs):
-        k = "default"
-        if k in kwargs:
-            item = self.__maps.get(name, kwargs[k])
-        else:
-            if len(args) > 0:
-                item = self.__maps.get(name, args[0])
-            else:
-                item = self.__maps.get(name)
-        return item
-
-    def remove(self, name):
-
-        self.__maps.pop(name, None)
-        return self
-
-    class Item(object):
-
-        def __init__(self, name, module, driver):
-
-            self.name = name
-            self.module = module
-            self.driver = driver
-
-        @property
-        def module(self):
-            return self.__module
-
-        @module.setter
-        def module(self, v):
-            if isinstance(v, str) or inspect.ismodule(v):
-                self.__module = v
-            else:
-                raise TypeError('值类型应该是字符串或者模块对象')
-
-        @property
-        def driver(self):
-            return self.__driver
-
-        @driver.setter
-        def driver(self, v):
-            if isinstance(v, str) or callable(v):
-                self.__driver = v
-            else:
-                raise TypeError("值类型应该是字符串或者驱动类")
-
-        def get_driver_class(self):
-            """获取驱动类"""
-
-            if callable(self.driver):
-                clazz = self.driver
-            elif isinstance(self.driver, str):
-                if inspect.ismodule(self.module):
-                    clazz = getattr(self.module, self.driver)
-                elif isinstance(self.module, str):
-                    m = importlib.import_module(self.module)
-                    clazz = getattr(m, self.driver)
-            return clazz
 
 
 class DriverManager(attrs_manager.AttributeManager):
@@ -129,7 +31,7 @@ class DriverManager(attrs_manager.AttributeManager):
     WECHAT_ALIAS = Const("wechat", "微信小程序minium会话默认别名")
     KEY_IN_SETTINGS = Const("DRIVER_MANAGER", "驱动管理器(即DriverManager实例)在全局配置(settings)中的键名")
 
-    SELENIUM_WEBDRIVER_MAP = DriverMap()
+    SELENIUM_WEBDRIVER_MAP = pre_map.Premap()
     SELENIUM_WEBDRIVER_MAP.add(IE.value, 'selenium.webdriver', 'Ie')
     SELENIUM_WEBDRIVER_MAP.add(EDGE.value, 'selenium.webdriver', 'Edge')
     SELENIUM_WEBDRIVER_MAP.add(CHROME.value, 'selenium.webdriver', 'Chrome')
@@ -137,7 +39,7 @@ class DriverManager(attrs_manager.AttributeManager):
     SELENIUM_WEBDRIVER_MAP.add(SAFARI.value, 'selenium.webdriver', 'Safari')
     SELENIUM_WEBDRIVER_MAP.add(SELENIUM_WEBDRIVER_REMOTE.value, 'selenium.webdriver', 'Remote')
 
-    APPIUM_WEBDRIVER_MAP = DriverMap()
+    APPIUM_WEBDRIVER_MAP = pre_map.Premap()
     APPIUM_WEBDRIVER_MAP.add(APPIUM_WEBDRIVER_REMOTE.value, 'appium.webdriver', 'Remote')
 
     def __init__(self, script_timeout=5.0, implicit_wait_timeout=0.0):
@@ -291,11 +193,11 @@ class DriverManager(attrs_manager.AttributeManager):
         clazz = self.__class__
         if browser is None:
             browser = clazz.SELENIUM_WEBDRIVER_REMOTE
-        classmap: DriverMap.Item = self.SELENIUM_WEBDRIVER_MAP.get(browser, default=None)
+        classmap: pre_map.Premap.Item = self.SELENIUM_WEBDRIVER_MAP.get(browser, default=None)
         if classmap is None:
             raise ValueError(
                 '未找到映射名为{} 的驱动映射，请先用add_selenium_webdriver方法添加selenium驱动映射'.format(browser))
-        driverclass = classmap.get_driver_class()
+        driverclass = classmap.get_object_from_module()
         driver = driverclass(*webdriver_args, **webdriver_kwargs)
         driver.set_script_timeout(self.script_timeout if script_timeout is None else script_timeout)
         driver.implicitly_wait(
