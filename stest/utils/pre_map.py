@@ -7,7 +7,7 @@ import importlib
 class Premap(object):
 
     def __init__(self):
-        # {name:item} item = Item(name, module, obj)
+        # {name:item} item = Item(name, obj, module=module, is_final=is_final)
         self.__maps = {}
 
     @property
@@ -24,44 +24,40 @@ class Premap(object):
 
         return name in self.__maps
 
-    def add(self, name, module, obj, *, convert=False, final_value=False):
+    def add(self, name, obj, *, module=None, is_final=False, convert=False):
         """添加映射
 
         Parameters
         ----------
         name : str
             映射名
-        module : str | ModuleType
-            可导入驱动的模块对象或者 可导入路径字符串
         obj : Any
-            指明要映射的对象，可以是模块中的对象或对象在模块中的名称
+            映射的对象，如果值类型是字符串，且is_final=False，从指定的模块中获取名为obj值的属性
+        module : str | ModuleType | None
+            可导入驱动的模块对象或者 可导入路径字符串，默认值为None，当obj为字符串，且is_final=False时，
+            值必须是模块的绝对导入路径字符串或者模块对象本身。
+        is_final : `bool`
+            标记`obj`是否是最终值，当is_final=False，obj是字符串类型时，从指定的模块中获取名为obj值的属性
         convert : bool
             映射已经存在是否覆盖，True -> 覆盖  False -> 不覆盖 , 默认为False
-        final_value : `bool`
-            标记`obj`是否是最终值，是则获取的时候直接返回，否则使用自动判断。默认为`False` -> `使用自动判断规则`：
-            如果`obj`是字符串，且模块中有该名为`obj`的值的属性名，则意味着要从模块中获取该属性，
-            否则则认为预映射的值已经是最终值，不需要再次从模块中去获取，直接返回即可
 
         Usage
         -----
         ```py
-        Premap().add(\"chrome\", \"selenium.webdriver\", \"Chrome\")
-
-        from selenium.webdriver import Chrome
-        Premap().add(\"chrome\", \"selenium.webdriver\", Chrome)
+        Premap().add(\"chrome\", \"Chrome\", module=\"selenium.webdriver\")
 
         from selenium import webdriver
-        Premap().add(\"chrome\", webdriver, webdriver.Chrome)
+        Premap().add(\"chrome\", webdriver.Chrome)
 
-        Premap().add(\"chrome\", webdriver, \"Chrome\")
+        Premap().add(\"chrome\", \"Chrome\", module=webdriver)
         ```
         """
 
         if convert:
-            self.__maps[name] = self.Item(name, module, obj, final_value)
+            self.__maps[name] = self.Item(name, obj, module=module, is_final=is_final)
         else:
             if not self.exists(name):
-                self.__maps[name] = self.Item(name, module, obj, final_value)
+                self.__maps[name] = self.Item(name, obj, module=module, is_final=is_final)
         return self
 
     def get(self, name, *args, **kwargs):
@@ -82,12 +78,12 @@ class Premap(object):
 
     class Item(object):
 
-        def __init__(self, name, module, obj, final_value=False):
+        def __init__(self, name, obj, module=None, is_final=False):
 
-            self.name = name
-            self.module = module
             self.obj = obj
-            self.final_value = final_value
+            self.name = name
+            self.is_final = is_final
+            self.module = module
 
         @property
         def module(self):
@@ -95,10 +91,14 @@ class Premap(object):
 
         @module.setter
         def module(self, v):
-            if isinstance(v, str) or inspect.ismodule(v):
-                self.__module = v
+
+            if isinstance(self.obj, str) and not self.is_final:
+                if isinstance(v, str) or inspect.ismodule(v):
+                    self.__module = v
+                else:
+                    raise TypeError('值类型需要是模块的绝对导入路径字符串或者模块对象本身')
             else:
-                raise TypeError('值类型应该是字符串或者模块对象')
+                self.__module = v
 
         @property
         def obj(self):
@@ -111,12 +111,10 @@ class Premap(object):
         def get_object_from_module(self):
             """获取最终值
 
-            属性`final_value`标记`self.obj`是否是最终值，是则获取的时候直接返回，否则使用自动判断规则。final_value 默认为False -> 使用自动判断规则：
-                - 如果 `self.obj` 是字符串，且模块中有该名为`self.obj`的值的属性名，则意味着要从模块中获取该属性，
-                否则则认为预映射的值已经是最终值，不需要再次从模块中去获取，直接返回即可
+            当is_final=False，obj是字符串类型时，从指定的模块中获取名为obj值的属性，否则直接返回
 
             """
-            if self.final_value:
+            if self.is_final:
                 o = self.obj
             else:
                 if isinstance(self.obj, str):
@@ -125,9 +123,9 @@ class Premap(object):
                     elif inspect.ismodule(self.module):
                         m = self.module
                     else:
-                        raise TypeError('module的值类型需要是字符串或者模块对象')
-                    if self.obj in dir(m):
-                        o = getattr(m, self.obj)
+                        raise TypeError('有效类型为模块的绝对导入路径字符串或者模块对象本身，module类型无效：{}'.format(
+                            type(self.module)))
+                    o = getattr(m, self.obj)
                 else:
                     o = self.obj
             return o

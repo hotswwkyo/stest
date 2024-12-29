@@ -32,15 +32,27 @@ class DriverManager(attrs_manager.AttributeManager):
     KEY_IN_SETTINGS = Const("DRIVER_MANAGER", "驱动管理器(即DriverManager实例)在全局配置(settings)中的键名")
 
     SELENIUM_WEBDRIVER_MAP = pre_map.Premap()
-    SELENIUM_WEBDRIVER_MAP.add(IE.value, 'selenium.webdriver', 'Ie')
-    SELENIUM_WEBDRIVER_MAP.add(EDGE.value, 'selenium.webdriver', 'Edge')
-    SELENIUM_WEBDRIVER_MAP.add(CHROME.value, 'selenium.webdriver', 'Chrome')
-    SELENIUM_WEBDRIVER_MAP.add(FIREFOX.value, 'selenium.webdriver', 'Firefox')
-    SELENIUM_WEBDRIVER_MAP.add(SAFARI.value, 'selenium.webdriver', 'Safari')
-    SELENIUM_WEBDRIVER_MAP.add(SELENIUM_WEBDRIVER_REMOTE.value, 'selenium.webdriver', 'Remote')
+    SELENIUM_WEBDRIVER_MAP.add(IE.value, 'Ie', module='selenium.webdriver')
+    SELENIUM_WEBDRIVER_MAP.add(EDGE.value, 'Edge', module='selenium.webdriver')
+    SELENIUM_WEBDRIVER_MAP.add(CHROME.value, 'Chrome', module='selenium.webdriver')
+    SELENIUM_WEBDRIVER_MAP.add(FIREFOX.value, 'Firefox', module='selenium.webdriver')
+    SELENIUM_WEBDRIVER_MAP.add(SAFARI.value, 'Safari', module='selenium.webdriver')
+    SELENIUM_WEBDRIVER_MAP.add(SELENIUM_WEBDRIVER_REMOTE.value,
+                               'Remote', module='selenium.webdriver')
 
     APPIUM_WEBDRIVER_MAP = pre_map.Premap()
-    APPIUM_WEBDRIVER_MAP.add(APPIUM_WEBDRIVER_REMOTE.value, 'appium.webdriver', 'Remote')
+    APPIUM_WEBDRIVER_MAP.add(APPIUM_WEBDRIVER_REMOTE.value, 'Remote', module='appium.webdriver')
+
+    # the desired_capabilities argument has been removed since v3.
+    # Options are only available since client version 2.3.0
+    # If you use an older client then switch to desired_capabilities
+    # instead: https://github.com/appium/python-client/pull/720
+    # 如果是新版本，desired_capabilities参数已经被移除，ENABLE_WINDOW_OPTIONS置为True
+    ENABLE_WINDOW_OPTIONS = False
+    OPTIONS_PARAMETER = Const("options", "appium webdriver 用于替换desired_capabilities的参数名")
+    WINDOW_OPTIONS = Const("WindowsOptions", "appium window driver options class")
+    OPTIONS_MAP = pre_map.Premap()
+    OPTIONS_MAP.add(WINDOW_OPTIONS.value, "WindowsOptions", module="appium.options.windows")
 
     def __init__(self, script_timeout=5.0, implicit_wait_timeout=0.0):
         """驱动管理器
@@ -139,25 +151,33 @@ class DriverManager(attrs_manager.AttributeManager):
     create_win_app_driver = create_appdriver
 
     @classmethod
-    def add_selenium_webdriver(cls, name, module, webdriver, convert=False):
+    def add_selenium_webdriver(cls, name, webdriver, module=None, is_final=False, convert=False):
         """添加selenium 测试驱动映射，供后面的创建驱动方法使用（set browser name map driver class of selenium support browser. it will be use in create browser driver of selenium test lib.）
 
         Parameters
         ----------
-        name: 映射名
-        module: 可导入selenium webdriver 的模块对象或者 可导入路径字符串
-        webdriver: selenium webdriver类对象或者类名
-        convert: 映射已经存在是否覆盖，True -> 覆盖  False -> 不覆盖 , 默认为False
+        name: str
+            映射名
+        webdriver: Any
+            selenium 驱动类对象或者类名，如果值类型是字符串，且`is_final=False`，从指定的模块中导入该驱动类
+        module: str | ModuleType | None
+            可导入selenium 驱动类的模块对象或者模块的可导入路径字符串，
+            `webdriver`为字符串，且`is_final=False`时，值类型必须是字符串或者模块的可导入路径字符串
+        is_final : `bool`
+            标记`obj`是否是最终值，当`is_final=False`，`webdriver`是字符串类型时，从指定的模块中导入驱动类
+        convert: bool
+            映射已经存在是否覆盖，True -> 覆盖  False -> 不覆盖 , 默认为False
 
         Usage
         ------
         ```py
-        DriverManager.add_selenium_webdriver(\"chrome\",\"selenium.webdriver\", \"Chrome\")
+        DriverManager.add_selenium_webdriver(\"chrome\", \"Chrome\", module=\"selenium.webdriver\")
         DRIVER_MANAGER.open_browser(\"chrome\")
         ```
 
         """
-        cls.SELENIUM_WEBDRIVER_MAP.add(name, module, webdriver, convert=convert)
+        smap = cls.SELENIUM_WEBDRIVER_MAP
+        smap.add(name, webdriver, module=module, is_final=is_final, convert=convert)
 
     def remove_selenium_webdriver(cls, name):
 
@@ -236,29 +256,65 @@ class DriverManager(attrs_manager.AttributeManager):
 
         return self.open_browser(self.EDGE, url=url, alias=alias, *args, **kwargs)
 
+    @classmethod
+    def cast_to_options(cls, desired_capabilities={}):
+
+        clazz = cls. OPTIONS_MAP.get(cls.WINDOW_OPTIONS)
+        options = clazz()
+        for k, v in desired_capabilities.items():
+            options.set_capability(k, v)
+        return options
+
     def open_desktop_session(self, remote_url, alias=None):
-        """开启window桌面会话"""
+        """开启window桌面会话
+
+        appium新版本，desired_capabilities参数已经被移除，请把 `ENABLE_WINDOW_OPTIONS` 置为True，
+        旧版本则设置为False，在调用该方法
+
+        [the desired_capabilities argument has been removed since v3. Options are only available since client version 2.3.0](https://github.com/appium/python-client/pull/720)
+
+        """
 
         alias = alias if alias else self.DESKTOP_ALIAS
         try:
             self.switch_driver(alias)
         except RuntimeError:
+            kwargs = {}
             desktop_capabilities = dict({"app": "Root", "platformName": "Windows", "deviceName": "Windows",
                                         "alias": alias, "newCommandTimeout": 3600, "forceMjsonwp": True})
-            self.create_win_app_driver(alias=alias, command_executor=remote_url,
-                                       desired_capabilities=desktop_capabilities)
+            if self.ENABLE_WINDOW_OPTIONS:
+                kwargs[self.OPTIONS_PARAMETER] = self.cast_to_options(desktop_capabilities)
+            else:
+                kwargs["desired_capabilities"] = desktop_capabilities
+            self.create_win_app_driver(alias=alias, command_executor=remote_url, **kwargs)
+
         return self.index
 
     def open_window_app(self, remote_url, alias=None, *args, **kwargs):
-        """"""
+        """开启window操作系统应用程序会话
 
-        desired_capabilities = kwargs.get("desired_capabilities", {})
-        if "platformName" not in desired_capabilities:
-            desired_capabilities["platformName"] = "Windows"
-        if "forceMjsonwp" not in desired_capabilities:
-            desired_capabilities["forceMjsonwp"] = True
+        appium新版本，desired_capabilities参数已经被移除，请把 `ENABLE_WINDOW_OPTIONS` 置为True，
+        旧版本则设置为False，再调用该方法
+
+        [the desired_capabilities argument has been removed since v3. Options are only available since client version 2.3.0](https://github.com/appium/python-client/pull/720)
+        """
+
+        if self.ENABLE_WINDOW_OPTIONS:
+            woclass = self.OPTIONS_MAP.get(self.WINDOW_OPTIONS)
+            options = kwargs.get("options", woclass())
+            if "platformName" not in options.to_capabilities():
+                options.set_capability("platformName", "Windows")
+            if "forceMjsonwp" not in options.to_capabilities():
+                options.set_capability("forceMjsonwp", True)
+            kwargs[self.OPTIONS_PARAMETER] = options
+        else:
+            desired_capabilities = kwargs.get("desired_capabilities", {})
+            if "platformName" not in desired_capabilities:
+                desired_capabilities["platformName"] = "Windows"
+            if "forceMjsonwp" not in desired_capabilities:
+                desired_capabilities["forceMjsonwp"] = True
+            kwargs["desired_capabilities"] = desired_capabilities
         kwargs["command_executor"] = remote_url
-        kwargs["desired_capabilities"] = desired_capabilities
         return self.create_win_app_driver(alias=alias, *args, **kwargs)
 
     def create_driver(self, driver_name, alias=None, *driver_args, **driver_kwargs):

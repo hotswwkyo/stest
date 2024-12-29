@@ -14,8 +14,8 @@ from ..utils import sutils
 from ..utils import attrs_manager
 from ..utils import attrs_marker
 from ..core.errors import WindowNotFound
-from ..dm import DRIVER_MANAGER
-from ..dm import WIN_APP_DRIVER_HELPER
+from ..dm import driver_manager
+from ..dm import win_app_driver_helper
 from ..pylibs.lazy_libs import LazyLibs
 from ..utils.screenshot_capturer import ScreenshotCapturer
 
@@ -23,8 +23,9 @@ from ..utils.screenshot_capturer import ScreenshotCapturer
 class AbstractPage(attrs_manager.AttributeManager):
     """ 抽象页 """
 
-    DRIVER_MANAGER = attrs_marker.Const(DRIVER_MANAGER, "Driver管理器")
-    WIN_APP_DRIVER_HELPER = attrs_marker.Const(WIN_APP_DRIVER_HELPER, "启动和关闭WinAppDriver.exe助手")
+    DRIVER_MANAGER = attrs_marker.Const(driver_manager.DRIVER_MANAGER, "Driver管理器")
+    WIN_APP_DRIVER_HELPER = attrs_marker.Const(
+        win_app_driver_helper.WIN_APP_DRIVER_HELPER, "启动和关闭WinAppDriver.exe助手")
 
     def __init__(self, driver=None, alias=None, timeout=0.0, *args, **kwargs):
         """一般不建议创建页面的时候直接创建驱动实例，建议页面实例化后再调用页面提供的相关驱动实例化方法更好
@@ -37,7 +38,7 @@ class AbstractPage(attrs_manager.AttributeManager):
             kwargs: 见DriverManager.create_driver
         """
 
-        self._dm = self.__class__.DRIVER_MANAGER
+        self._dm: driver_manager.DriverManager = self.__class__.DRIVER_MANAGER
         self._dm.script_timeout = kwargs.pop("script_timeout", 5.0)
         self._dm.implicit_wait_timeout = kwargs.pop("implicit_wait_timeout", 0.0)
 
@@ -129,6 +130,9 @@ class AbstractPage(attrs_manager.AttributeManager):
     def open_window_app(self, remote_url="http://127.0.0.1:4723", desired_capabilities={}, alias=None, window_name=None, splash_delay=0, exact_match=True, desktop_alias=None):
         """ 创建 Windows 应用程序驱动程序会话
 
+        DriverManager类的`ENABLE_WINDOW_OPTIONS`属性为True时，会将`desired_capabilities` 转化为`WindowsOptions`实例,
+        desired_capabilities参数从appium 3. 版本开始被移除，如果你使用的appium 3.x 版本的，请将`ENABLE_WINDOW_OPTIONS`设为True
+
         Args:
             remote_url: WinAppDriver or Appium server url
             desired_capabilities:用于创建 Windows 应用程序驱动程序会话的功能
@@ -157,13 +161,23 @@ class AbstractPage(attrs_manager.AttributeManager):
                 self.sleep(splash_delay)
             return self.switch_window_app_by_name(remote_url, alias=alias, window_name=window_name, exact_match=exact_match, desktop_alias=desktop_alias, **desired_capabilities)
         self.driver_manager.open_desktop_session(remote_url, desktop_alias)
-        self.driver_manager.open_window_app(
-            remote_url, alias=alias, desired_capabilities=desired_capabilities)
+
+        winapp_kwargs = {}
+        if self.driver_manager.ENABLE_WINDOW_OPTIONS:
+            winapp_kwargs[self.driver_manager.OPTIONS_PARAMETER] = self.driver_manager.cast_to_options(
+                desired_capabilities)
+        else:
+            winapp_kwargs["desired_capabilities"] = desired_capabilities
+        self.driver_manager.open_window_app(remote_url, alias=alias, **winapp_kwargs)
         return self
 
-    def switch_window_app_by_window_element(self, remote_url, window_element, alias=None, **kwargs):
+    def switch_window_app_by_window_element(self, remote_url, window_element, alias=None, **desired_capabilities):
+        """通过窗口元素切换应用
 
-        desired_caps = kwargs
+        DriverManager类的`ENABLE_WINDOW_OPTIONS`属性为True时，会将`desired_capabilities` 转化为`WindowsOptions`实例,
+        desired_capabilities参数从appium 3. 版本开始被移除，如果你使用的appium 3.x 版本的，请将`ENABLE_WINDOW_OPTIONS`设为True
+        """
+
         window_name = window_element.get_attribute("Name")
         if not window_name:
             msg = 'Error connecting webdriver to window "' + window_name + '". \n'
@@ -171,23 +185,33 @@ class AbstractPage(attrs_manager.AttributeManager):
             msg = 'Error connecting webdriver to window(which window element tag name is:{}). \n'.format(
                 window_element.tag_name)
         window = hex(int(window_element.get_attribute("NativeWindowHandle")))
-        if "app" in desired_caps:
-            del desired_caps["app"]
-        if "platformName" not in desired_caps:
-            desired_caps["platformName"] = "Windows"
-        if "forceMjsonwp" not in desired_caps:
-            desired_caps["forceMjsonwp"] = True
-        desired_caps["appTopLevelWindow"] = window
+        if "app" in desired_capabilities:
+            del desired_capabilities["app"]
+        if "platformName" not in desired_capabilities:
+            desired_capabilities["platformName"] = "Windows"
+        if "forceMjsonwp" not in desired_capabilities:
+            desired_capabilities["forceMjsonwp"] = True
+        desired_capabilities["appTopLevelWindow"] = window
+
+        winapp_kwargs = {}
+        if self.driver_manager.ENABLE_WINDOW_OPTIONS:
+            name = self.driver_manager.OPTIONS_PARAMETER
+            winapp_kwargs[name] = self.driver_manager.cast_to_options(desired_capabilities)
+        else:
+            winapp_kwargs["desired_capabilities"] = desired_capabilities
         try:
-            self.driver_manager.open_window_app(
-                remote_url, alias=alias, desired_capabilities=desired_caps)
+            self.driver_manager.open_window_app(remote_url, alias=alias, **winapp_kwargs)
         except Exception as e:
             raise WindowNotFound(msg + str(e))
         return self
 
-    def switch_window_app_by_name(self, remote_url, window_name, alias=None, timeout=5, exact_match=True, desktop_alias=None, **kwargs):
+    def switch_window_app_by_name(self, remote_url, window_name, alias=None, timeout=5, exact_match=True, desktop_alias=None, **desired_capabilities):
+        """通过窗口名称切换应用
 
-        desired_caps = kwargs
+        DriverManager类的`ENABLE_WINDOW_OPTIONS`属性为True时，会将`desired_capabilities` 转化为`WindowsOptions`实例,
+        desired_capabilities参数从appium 3. 版本开始被移除，如果你使用的appium 3.x 版本的，请将`ENABLE_WINDOW_OPTIONS`设为True
+        """
+
         self.driver_manager.open_desktop_session(remote_url, desktop_alias)
         window_xpath = '//Window[contains(@Name, "' + window_name + '")]'
         window_locator = window_name
@@ -207,18 +231,25 @@ class AbstractPage(attrs_manager.AttributeManager):
             except Exception as e:
                 msg = 'Error finding window "{}" in the desktop session. Is it a top level window handle? \n {}'
                 raise LazyLibs.Selenium().exceptions.NoSuchWindowException(msg.format(window_name, str(e)))
-        if "app" in desired_caps:
-            del desired_caps["app"]
-        if "platformName" not in desired_caps:
-            desired_caps["platformName"] = "Windows"
-        if "forceMjsonwp" not in desired_caps:
-            desired_caps["forceMjsonwp"] = True
-        desired_caps["appTopLevelWindow"] = window
+        if "app" in desired_capabilities:
+            del desired_capabilities["app"]
+        if "platformName" not in desired_capabilities:
+            desired_capabilities["platformName"] = "Windows"
+        if "forceMjsonwp" not in desired_capabilities:
+            desired_capabilities["forceMjsonwp"] = True
+        desired_capabilities["appTopLevelWindow"] = window
+
+        winapp_kwargs = {}
+        if self.driver_manager.ENABLE_WINDOW_OPTIONS:
+            name = self.driver_manager.OPTIONS_PARAMETER
+            winapp_kwargs[name] = self.driver_manager.cast_to_options(desired_capabilities)
+        else:
+            winapp_kwargs["desired_capabilities"] = desired_capabilities
+
         # global application
         try:
             # print('Connecting to window_name "%s".' % window_name)
-            self.driver_manager.open_window_app(
-                remote_url, alias=alias, desired_capabilities=desired_caps)
+            self.driver_manager.open_window_app(remote_url, alias=alias, **winapp_kwargs)
         except Exception as e:
             msg = 'Error connecting webdriver to window "{}" .\n {}'
             raise WindowNotFound(msg.format(window_name, str(e)))
