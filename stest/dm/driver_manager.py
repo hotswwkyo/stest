@@ -259,7 +259,7 @@ class DriverManager(attrs_manager.AttributeManager):
     @classmethod
     def cast_to_options(cls, desired_capabilities={}):
 
-        cmap = cls. OPTIONS_MAP.get(cls.WINDOW_OPTIONS)
+        cmap = cls.OPTIONS_MAP.get(cls.WINDOW_OPTIONS)
         clazz = cmap.get_object_from_module()
         options = clazz()
         for k, v in desired_capabilities.items():
