@@ -213,7 +213,7 @@ class DriverManager(attrs_manager.AttributeManager):
         clazz = self.__class__
         if browser is None:
             browser = clazz.SELENIUM_WEBDRIVER_REMOTE
-        classmap: pre_map.Premap.Item = self.SELENIUM_WEBDRIVER_MAP.get(browser, default=None)
+        classmap = self.SELENIUM_WEBDRIVER_MAP.get(browser, default=None)
         if classmap is None:
             raise ValueError(
                 '未找到映射名为{} 的驱动映射，请先用add_selenium_webdriver方法添加selenium驱动映射'.format(browser))
@@ -259,7 +259,8 @@ class DriverManager(attrs_manager.AttributeManager):
     @classmethod
     def cast_to_options(cls, desired_capabilities={}):
 
-        clazz = cls. OPTIONS_MAP.get(cls.WINDOW_OPTIONS)
+        cmap = cls. OPTIONS_MAP.get(cls.WINDOW_OPTIONS)
+        clazz = cmap.get_object_from_module()
         options = clazz()
         for k, v in desired_capabilities.items():
             options.set_capability(k, v)
@@ -300,7 +301,7 @@ class DriverManager(attrs_manager.AttributeManager):
         """
 
         if self.ENABLE_WINDOW_OPTIONS:
-            woclass = self.OPTIONS_MAP.get(self.WINDOW_OPTIONS)
+            woclass = self.OPTIONS_MAP.get(self.WINDOW_OPTIONS).get_object_from_module()
             options = kwargs.get("options", woclass())
             if "platformName" not in options.to_capabilities():
                 options.set_capability("platformName", "Windows")
