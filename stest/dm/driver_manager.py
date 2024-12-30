@@ -269,26 +269,21 @@ class DriverManager(attrs_manager.AttributeManager):
     def open_desktop_session(self, remote_url, alias=None):
         """开启window桌面会话
 
-        appium新版本，desired_capabilities参数已经被移除，请把 `ENABLE_WINDOW_OPTIONS` 置为True，
-        旧版本则设置为False，在调用该方法
+        appium新版本，`desired_capabilities`参数已经被移除，请把 `ENABLE_WINDOW_OPTIONS` 置为`True`，
+        旧版本则设置为`False`，在调用该方法
 
         [the desired_capabilities argument has been removed since v3. Options are only available since client version 2.3.0](https://github.com/appium/python-client/pull/720)
-
         """
 
         alias = alias if alias else self.DESKTOP_ALIAS
-        try:
-            self.switch_driver(alias)
-        except RuntimeError:
-            kwargs = {}
-            desktop_capabilities = dict({"app": "Root", "platformName": "Windows", "deviceName": "Windows",
-                                        "alias": alias, "newCommandTimeout": 3600, "forceMjsonwp": True})
-            if self.ENABLE_WINDOW_OPTIONS:
-                kwargs[self.OPTIONS_PARAMETER] = self.cast_to_options(desktop_capabilities)
-            else:
-                kwargs["desired_capabilities"] = desktop_capabilities
-            self.create_win_app_driver(alias=alias, command_executor=remote_url, **kwargs)
-
+        kwargs = {}
+        desktop_capabilities = dict({"app": "Root", "platformName": "Windows", "deviceName": "Windows",
+                                    "alias": alias, "newCommandTimeout": 3600, "forceMjsonwp": True})
+        if self.ENABLE_WINDOW_OPTIONS:
+            kwargs[self.OPTIONS_PARAMETER] = self.cast_to_options(desktop_capabilities)
+        else:
+            kwargs["desired_capabilities"] = desktop_capabilities
+        self.create_win_app_driver(alias=alias, command_executor=remote_url, **kwargs)
         return self.index
 
     def open_window_app(self, remote_url, alias=None, *args, **kwargs):
