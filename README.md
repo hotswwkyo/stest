@@ -1363,6 +1363,11 @@ if __name__ == "__main__":
 
 ```
 ### window应用程序页面示例
+| name | version |
+| :---- | :---- |
+| selenium | 3.141.0 |
+| Appium-Python-Client | 0.48 |
+| WinAppDriver | 1.2.200902003-release |
 ```python
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
