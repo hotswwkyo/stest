@@ -9,6 +9,7 @@
 from ..utils import sutils
 from ..utils import pre_map
 from ..conf import settings
+from ..utils.attrs_marker import Var
 from ..utils.attrs_marker import Const
 from ..utils import attrs_manager
 from .driver_cache import DriverCache
@@ -49,7 +50,7 @@ class DriverManager(attrs_manager.AttributeManager):
     # instead: https://github.com/appium/python-client/pull/720
     # 如果是新版本，desired_capabilities参数已经被移除，ENABLE_WINDOW_OPTIONS置为True
     ENABLE_WINDOW_OPTIONS = False
-    OPTIONS_PARAMETER = Const("options", "appium webdriver 用于替换desired_capabilities的参数名")
+    OPTIONS_PARAMETER = Var("options", description="appium webdriver 用于替换desired_capabilities的参数名")
     WINDOW_OPTIONS = Const("WindowsOptions", "appium window driver options class")
     OPTIONS_MAP = pre_map.Premap()
     OPTIONS_MAP.add(WINDOW_OPTIONS.value, "WindowsOptions", module="appium.options.windows")
