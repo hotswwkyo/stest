@@ -21,7 +21,7 @@
 
 
 Simple usage:
-
+```py
     import os
 
     from stest import settings
@@ -123,6 +123,7 @@ Simple usage:
 
     if __name__ == '__main__':
         CalculationTest.run_test()
+```
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
