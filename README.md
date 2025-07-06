@@ -1,5 +1,5 @@
 # stest
- 基于unittest开发的测试框架，更友好、更灵活的编写、管理与运行测试，生成更加美观的独立单文件HTML报告。内置参数化测试数据存取方案，省去设计的烦恼，节省更多的时间，从而更快的投入到编写用例阶段。
+ 更友好、更灵活的编写、管理与运行测试，生成更加美观的独立单文件HTML报告。内置参数化测试数据存取方案，省去设计的烦恼，节省更多的时间，从而更快的投入到编写用例阶段。
  * 现已支持的功能
     >* 支持命名测试方法且不与方法的doc string（文档字符串）冲突
     >* 支持设置测试方法编写人，修改人，最后修改人以及最后一次修改时间等额外记录信息
@@ -7,6 +7,7 @@
     >* 支持参数化功能
     >* 支持数据驱动测试
     >* 支持设置用例依赖
+    >* 支持快速添加截图到测试报告
     >* 内置参数化数据存取方案(使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护)
     >* 支持生成更加简洁美观且可作为独立文件发送的HTML测试报告
     >* 支持生成jenkins junit xml 格式测试报告，用于jenkins集成
@@ -29,6 +30,8 @@ pip方式安装
 ## 执行测试
 命令行执行
 > python -m stest -v -html D:\temp\tms_apitest.html calculation_test.py
+
+> python -m stest discover -s erp_autotest\testcases -p *.py
 
 查看命令行参数
 > python -m stest -h
@@ -228,6 +231,65 @@ if __name__ == '__main__':
     | PROJECT_NAME | 项目名称，命令行没有传入则取该设置 |
     | DESCRIPTION | 描述，命令行没有传入则取该设置 |
     | DRIVER_MANAGER | 驱动管理器，框架自动赋值，勿修改 |
+    | TEST_PARAM_ALIAS | stest.Test 参数别名 |
+    | TEST_PARAM_NAME_FORMAT_STRING | stest.Test 参数格式化字符串或者格式化函数，用于在测试报告中如何显示。格式化字符串中可用的变量为{param}和{alias}，{param}为参数字段，{alias}为参数别名。如果是一个函数，则需要接收两个参数，第一个是参数字段名，第二个是参数字段别名，返回值须是字符串，否则不起作用 |
+    | TEST_PARAM_VALUE_FORMATTER | stest.Test参数值格式化，用于在测试报告中如何显示参数值，字典或者一个接收参数名和参数值两个参数的函数，如果是一个函数，则作用与所有参数，函数返回值不是字符串则不起作用。如果是字典，键名是参数名称，键值是一个接收参数名和参数值两个参数的函数 |
+
+* 示例
+    ```python
+    # -*- coding: utf-8 -*-
+    import os
+    import html
+    from stest.report.html import elements
+
+    # settings.py 所在目录路径
+    PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # 测试用例数据目录
+    SEVEN_DATA_PROVIDER_DATA_FILE_DIR = os.path.join(PROJECT_DIR, "testdata")
+
+    # 测试报告存放目录
+    TEST_REPORT_DIR = os.path.join(PROJECT_DIR, "report")
+
+    # 截图存放目录
+    SCREENSHOT_SAVE_DIR = os.path.join(PROJECT_DIR, "screenshot")
+
+    # 测试环境地址
+    WEB_URL = "https://tv.cctv.com/live/cctv13"
+
+    # 账号&密码
+    USER_NAME = "siwenwei"
+    USER_PWD = "123456"
+
+    TEST_PARAM_NAME_FORMAT_STRING = "{param} - {alias}"
+
+    TEST_PARAM_ALIAS = {"priority": "优先级",
+                        "author": "编写者",
+                        "editors": "修改者",
+                        "last_modifyied_by": "最后修改者",
+                        "last_modified_time": "最近修改时间",
+                        "groups": "所属组",
+                        "related_testcases": "相关用例"
+                        }
+
+
+    def test_param_value_formatter(param, value):
+
+        if isinstance(value, (list, tuple)):
+            html_texts = []
+            for one in value:
+                text = one if isinstance(one, str) else str(one)
+                html_texts.append(elements.P(html.escape(text, False)).to_html())
+            return "".join(html_texts)
+        else:
+            return None
+
+    TEST_PARAM_VALUE_FORMATTER = dict(related_testcases=test_param_value_formatter)
+    ```
+    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_01.png)
+
+    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_02.png)
+
 
 * stestdemo
     >    ![](https://github.com/hotswwkyo/stest/blob/main/img/project_dirs.png)

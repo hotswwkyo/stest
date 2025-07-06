@@ -201,9 +201,9 @@ class TestResultFinder(AttributeManager):
     def find_test_result(cls, test, results):
 
         # find pass test case
-        for ptest in results.successes:
+        for ptest, message in results.successes:
             if test.id() == ptest.id():
-                return (cls.PASS_CODE, cls.get_result_name(cls.PASS_CODE), '')
+                return (cls.PASS_CODE, cls.get_result_name(cls.PASS_CODE), message)
         for ptest, message in results.expectedFailures:
             if test.id() == ptest.id():
                 return (cls.PASS_CODE, cls.get_result_name(cls.PASS_CODE), message)
@@ -251,12 +251,13 @@ class TestResultFinder(AttributeManager):
 class TestDepends(object):
     """ Information about the resolved dependencies of a single test """
 
-    def __init__(self, testcase_wrapper, manager):
+    def __init__(self, testcase_wrapper: TestCaseWrapper, manager):
 
         self.testid = testcase_wrapper.id()
+        self.newid = testcase_wrapper.new_id
         self.depends = set()
         self.unresolved = set()
-
+        self.depends_without_serial_number = set()
         for depend in testcase_wrapper.depends:
             if depend not in manager.name_to_testids:
                 absolute_depend = testcase_wrapper.get_absolute_testcase_id(
@@ -267,6 +268,8 @@ class TestDepends(object):
             if depend in manager.name_to_testids:
                 for testid in manager.name_to_testids[depend]:
                     self.depends.add(testid)
+                    self.depends_without_serial_number.add(
+                        manager.testid_to_test_wrapper[testid].new_id)
             else:
                 self.unresolved.add(depend)
 
@@ -278,6 +281,7 @@ class DependsManager(object):
         self._results = None
         self._name_to_testids = None
         self._testid_to_test = None
+        self._testid_to_test_wrapper = None
         self._weights = {}
         self._links = {}
         self._cyclic_links = {}
@@ -297,13 +301,14 @@ class DependsManager(object):
         self._tests = testcases
 
         self._depends = {}
+        self._newid_to_test_depends = {}
         self._testid_to_test = {}
+        self._testid_to_test_wrapper = {}
         self._name_to_testids = collections.defaultdict(list)
-
         tc_wrappers = [TestCaseWrapper(tc) for tc in testcases]
-
         for tc in tc_wrappers:
             self._testid_to_test[tc.id()] = tc.testcase
+            self._testid_to_test_wrapper[tc.id()] = tc
             for name in tc.get_names():
                 self._name_to_testids[name].append(tc.id())
 
@@ -311,86 +316,297 @@ class DependsManager(object):
         self._name_to_testids.default_factory = None
 
         for tc in tc_wrappers:
-            self._depends[tc.id()] = TestDepends(tc, self)
+            td = TestDepends(tc, self)
+            self._depends[tc.id()] = td
+            if tc.new_id in self._newid_to_test_depends:
+                self._newid_to_test_depends[tc.new_id].add(td)
+            else:
+                tdset = set()
+                tdset.add(td)
+                self._newid_to_test_depends[tc.new_id] = tdset
 
         for tc in tc_wrappers:
-            weight, links, cyclic_links = self.calc_weight_and_link(tc.id())
+            weight, links, cyclic_links, cycle_chain_list = self.calc_weight_and_link_perf(tc.id())
             self._weights[tc.id()] = weight
             self._links[tc.id()] = links
-            self._cyclic_links[tc.id()] = cyclic_links
+            self._cyclic_links[tc.id()] = cycle_chain_list
 
     def calc_weight_and_link(self, testcase_id):
-        """ 计算用例的依赖权重和他所依赖的用例（包括直接和间接依赖），同时检查是否存在循环依赖
-
-        Args:
-            testcase_id: 测试用例id
-
-        Returns: 返回3个元素的元祖，第一个是权重，第二个是所依赖的用例id列表，第三个是循环依赖的用例id列表
-
-        Useage:
-            t1 -> t2 -> t3    t1 -> t2 ->t4 ->t5
-
-            self.calc_weight_and_link(t1.id)
-
-            >>> (4, [[t2.id, t3.id],[t2.id, t4.id, t5.id]], [])
-
-            t1 -> t2 -> t3    t1 -> t2 ->t4 ->t1
-
-            self.calc_weight_and_link(t1.id)
-
-            >>> (4, [[t2.id, t3.id],[t2.id, t4.id]], [[t1.id, t2.id, t4.id, t1.id]])
         """
+        计算用例的依赖权重、完整依赖链和循环依赖链。
 
+        Parameters
+        ----------
+            testcase_id : 用例对象id。
+
+        Returns
+        -------
+            - weight (int) : 主用例的权重（直接和间接依赖的用例总数，去重）。
+            - all_chains (list of list) : 所有完整依赖链的列表，每条链是从主用例到叶子节点的节点序列。
+            - cycle_chains (list of list) : 所有循环依赖链的列表，每条循环链表示检测到的循环路径。
+            - cycle_chain_list (list of list) : 所有循环依赖链的列表，每条循环链表示从主用例开始到出现循环依赖结束的链路。
+
+        Usage
+        -----
+            ```python
+            def demo4():
+                \"""示例3：多依赖与循环
+
+                a->
+                |->b->d->a
+                |->c->e->f->g->e
+                \"""
+                # 构造用例
+                a = TestCase('A')
+                b = TestCase('B')
+                c = TestCase('C')
+                d = TestCase('D')
+                e = TestCase('E')
+                f = TestCase('F')
+                g = TestCase('G')
+                a.depends = {b, c}
+                b.depends = {d}
+                c.depends = {e}
+                d.depends = {a}
+                e.depends = {f}
+                f.depends = {g}
+                g.depends = {e}
+
+                # 计算依赖
+                weight, all_chains, cycle_chains,cycle_chain_list = calc_weight_and_link(a)
+                print("权重:", weight)
+                print("完整依赖链:", all_chains)
+                for cycle_chain in cycle_chains:
+                    print("循环依赖链:", "->".join([one.name for one in cycle_chain]))
+
+                for cycle_chain in cycle_chain_list:
+                    print("从主用例开始到出现循环依赖的链路:", "->".join([one.name for one in cycle_chain]))
+            demo4()
+            >>> 权重: 6
+            >>> 完整依赖链: []
+            >>> 循环依赖链: A->B->D->A
+            >>> 循环依赖链: E->F->G->E
+            >>> 从主用例开始到出现循环依赖的链路: A->B->D->A
+            >>> 从主用例开始到出现循环依赖的链路: A->C->E->F->G->E
+            ```
+        """
         count = 0
-        cyclic_links = []
+        dependency_nodes = set()  # 存储所有依赖节点（直接和间接，去重）
+        all_chains = []			 # 存储完整依赖链（非循环路径）
+        cycle_chains = []		 # 存储循环依赖链 （只存储循环部分）
+        seen_cycle_sets = set()	 # 用于去重循环链的集合（存储节点集合的冻结集）
+        cycle_chain_list = []    # 存储从主用例开始到出现循环依赖结束的链路
+        main_case: TestDepends = self.depends.get(testcase_id, None)
 
-        def _calc_weight_and_link(testid, link_recorder=[]):
-
-            weight = 0
-            links = []
+        def dfs(node, path):
+            """深度优先搜索遍历依赖图，记录路径并检测循环。"""
             nonlocal count
-            nonlocal cyclic_links
-            depends_info = self.depends.get(testid, None)
-            count = count + 1
-            link_recorder.append(testid)
+            count += len(node.unresolved)
+            # 遍历当前节点的所有依赖
+            for newid in node.depends_without_serial_number:
+                dep_set = self.newid_to_test_depends.get(newid, set())
+                dep = list(dep_set)[0]
+                if dep.newid in path:
+                    # 发现循环：当前依赖已在路径中出现
+                    idx = path.index(dep.newid)
+                    cycle_chain_list.append(path + [dep.newid])
+                    cycle_chain = path[idx:] + [dep.newid]  # 构建循环链：从首次出现位置到当前节点，再加当前依赖
+                    cycle_set = frozenset(cycle_chain)  # 使用节点集合标识循环
+                    if cycle_set not in seen_cycle_sets:
+                        seen_cycle_sets.add(cycle_set)
+                        cycle_chains.append(cycle_chain)
+                    continue  # 跳过循环依赖，避免无限递归
 
-            if depends_info is not None:
-                know_depends = depends_info.depends
-                unknow_depends = depends_info.unresolved
-                kcounts = len(know_depends)
-                ucounts = len(unknow_depends)
-                weight = weight + kcounts + ucounts
-                if kcounts > 0:
-                    for test_id in know_depends:
-                        if test_id in link_recorder:  # 说明当前依赖关系链路已造成循环依赖
-                            cyclic_link = [c for c in link_recorder]
-                            cyclic_link.append(test_id)
-                            cyclic_links.append(cyclic_link)
-                            link_recorder.pop()  # 依赖链路死循环，获取父级链路，以便记录其他兄弟节点的链路
+                # 非循环依赖：将依赖节点加入集合，继续递归
+                dependency_nodes.add(dep.newid)
+                new_path = path + [dep.newid]	 # 扩展路径
+                ntc = self.newid_to_test_depends.get(dep.newid, set())
+                if ntc:
+                    dfs(list(ntc)[0], new_path)		 # 递归处理依赖
 
-                            # continue # 原码 为了获取所有的循环链，但多参数化传入多条数据进行数据驱动测试，设置循环依赖会导致代码死循环，无法获取循环链 2021-09-29 注释 by 思文伟
-                            break  # 由continue 改为break  2021-09-29 注释 by 思文伟
+            # 当前节点无依赖时，记录完整依赖链（叶子节点）
+            if not node.depends:
+                all_chains.append(path)
+        if main_case is not None:
+            count += len(main_case.unresolved)
+            # 从主用例开始处理
+            start_path = [main_case.newid]
+            if not main_case.depends_without_serial_number:
+                # 主用例无依赖：自身即为完整链
+                all_chains.append(start_path)
+            else:
+                for newid in main_case.depends_without_serial_number:
+                    if newid in start_path:
+                        # 主用例直接依赖自身（循环）
+                        idx = start_path.index(newid)
+                        cycle_chain_list.append(start_path + [newid])
+                        cycle_chain = start_path[idx:] + [newid]
+                        cycle_set = frozenset(cycle_chain)
+                        if cycle_set not in seen_cycle_sets:
+                            seen_cycle_sets.add(cycle_set)
+                            cycle_chains.append(cycle_chain)
+                        continue
 
-                        sub_weight, sub_links = _calc_weight_and_link(test_id, link_recorder)
-                        weight = weight + sub_weight
-                        link = []
-                        if sub_links:
-                            for slink in sub_links:
-                                onelink = [test_id]
-                                onelink.extend(slink)
-                                link.append(onelink)
-                        else:
-                            link.append([test_id])
+                    # 处理非循环依赖
+                    dependency_nodes.add(newid)
+                    new_path = start_path + [newid]
+                    tc = self.newid_to_test_depends.get(newid, set())
+                    if tc:
+                        dfs(list(tc)[0], new_path)
 
-                            # 依赖链路已经结束，获取父级链路，以便记录其他兄弟节点的链路
-                            if link_recorder[-1] == test_id:
-                                link_recorder.pop()
-                        if link:
-                            links.extend(link)
-            return (weight, links)
+        weight = len(dependency_nodes)  # 权重为依赖节点总数（去重）
+        return weight, all_chains, cycle_chains, cycle_chain_list
 
-        r = _calc_weight_and_link(testcase_id)
-        return (r[0], r[1], cyclic_links)
+    def calc_weight_and_link_perf(self, testcase_id):
+        """
+        高性能版本：计算用例的依赖权重、完整依赖链和循环依赖链
+
+        优化点：
+        1. 使用迭代DFS替代递归DFS，避免栈溢出
+        2. 使用路径集合快速检测循环依赖 (O(1)查找)
+        3. 节点状态跟踪避免重复计算
+        4. 环检测使用节点集合去重
+
+        Parameters
+        ----------
+            testcase_id : 用例对象id。
+
+        Returns
+        -------
+        - weight (int) : 主用例的权重（直接和间接依赖的用例总数，去重）。
+        - all_chains (list of list) : 截止到发行循环链时当前所获取到的完整依赖链的列表，每条链是从主用例到叶子节点的节点序列。
+        - cycle_chains (list of list) : 截止到发行循环链时当前所获取到的循环依赖链的列表，每条循环链表示检测到的循环路径。
+        - cycle_chain_list (list of list) : 截止到发行循环链时当前所获取到的循环依赖链的列表，每条循环链表示从主用例开始到出现循环依赖结束的链路。
+
+        Usage
+        -----
+            ```python
+            def demo4():
+                \"""示例3：多依赖与循环
+
+                a->
+                |->b->d->a
+                |->c->e->f->g->e
+                \"""
+                # 构造用例
+                a = TestCase('A')
+                b = TestCase('B')
+                c = TestCase('C')
+                d = TestCase('D')
+                e = TestCase('E')
+                f = TestCase('F')
+                g = TestCase('G')
+                a.depends = {b, c}
+                b.depends = {d}
+                c.depends = {e}
+                d.depends = {a}
+                e.depends = {f}
+                f.depends = {g}
+                g.depends = {e}
+
+                # 计算依赖
+                weight, all_chains, cycle_chains,cycle_chain_list = calc_weight_and_link(a)
+                print("权重:", weight)
+                print("完整依赖链:", all_chains)
+                for cycle_chain in cycle_chains:
+                    print("循环依赖链:", "->".join([one.name for one in cycle_chain]))
+
+                for cycle_chain in cycle_chain_list:
+                    print("从主用例开始到出现循环依赖的链路:", "->".join([one.name for one in cycle_chain]))
+            demo4()
+            >>> 权重: 6
+            >>> 完整依赖链: []
+            >>> 循环依赖链: A->B->D->A
+            >>> 循环依赖链: E->F->G->E
+            >>> 从主用例开始到出现循环依赖的链路: A->B->D->A
+            >>> 从主用例开始到出现循环依赖的链路: A->C->E->F->G->E
+            ```
+        """
+        # 初始化数据结构
+        visited_global = set()       # 全局访问节点（用于权重计算）
+        all_chains = []             # 完整依赖链
+        cycle_chains = []           # 循环依赖链
+        seen_cycles = set()         # 环标识集合（用于去重）
+        stack = []                  # DFS栈: (当前节点, 路径列表, 路径集合)
+        cycle_chain_list = []    # 存储从主用例开始到出现循环依赖结束的链路
+        # 主用例对象，每个用例对象应具有属性'depends'，该属性是一个集合，包含其直接依赖的用例用例id。
+        main_case: TestDepends = self.depends.get(testcase_id, None)
+        # 主用例特殊处理
+        if not main_case.depends_without_serial_number:
+            # 无依赖：自身即为完整链
+            all_chains.append([main_case.newid])
+            return 0, all_chains, cycle_chains, cycle_chain_list
+
+        # 初始化栈：主用例的直接依赖
+        for newid in main_case.depends_without_serial_number:
+            dep_set: set = self.newid_to_test_depends.get(newid, set())
+            dep: TestDepends = list(dep_set)[0]
+            # 处理自循环 (主用例依赖自身)
+            if dep.newid is main_case.newid:
+                cycle = (main_case.newid,)
+                if cycle not in seen_cycles:
+                    seen_cycles.add(cycle)
+                    cycle_chains.append([main_case.newid, main_case.newid])
+                    cycle_chain_list.append([main_case.newid, main_case.newid])
+                continue
+
+            # 初始化路径
+            path = [main_case.newid, dep.newid]
+            path_set = {main_case.newid, dep.newid}
+
+            # 添加到全局节点
+            if dep.newid not in visited_global:
+                visited_global.add(dep.newid)
+
+            # 入栈处理
+            stack.append((dep.newid, path, path_set))
+
+        # 迭代DFS处理
+        while stack:
+            current_id, path, path_set = stack.pop()
+            current_set: set = self.newid_to_test_depends.get(current_id, set())
+            current: TestDepends = list(current_set)[0]
+            has_dependencies = False
+
+            # 处理当前节点的依赖
+            for dep_id in current.depends_without_serial_number:
+                dep_set: set = self.newid_to_test_depends.get(dep_id, set())
+                dep: TestDepends = list(dep_set)[0]
+                # 检测循环依赖
+                if dep.newid in path_set:
+                    # 获取环路径 (从首次出现位置开始)
+                    idx = path.index(dep.newid)
+                    cycle_path = tuple(path[idx:])  # 使用元组作为环标识
+                    cycle_chain_list.append(path + [dep.newid])
+                    # 环去重处理
+                    if cycle_path not in seen_cycles:
+                        seen_cycles.add(cycle_path)
+                        # 构建完整环链 (首尾闭合)
+                        cycle_chain = path[idx:] + [dep.newid]
+                        cycle_chains.append(cycle_chain)
+                    continue
+
+                # 标记有依赖关系
+                has_dependencies = True
+
+                # 更新全局节点
+                if dep.newid not in visited_global:
+                    visited_global.add(dep.newid)
+
+                # 创建新路径
+                new_path = path + [dep.newid]
+                new_path_set = path_set | {dep.newid}  # 创建新集合避免修改原集合
+
+                # 压栈继续处理
+                stack.append((dep.newid, new_path, new_path_set))
+
+            # 记录完整依赖链 (叶子节点)
+            if not has_dependencies:
+                all_chains.append(path)
+
+        # 计算权重 (全局节点数)
+        weight = len(visited_global)
+        return weight, all_chains, cycle_chains, cycle_chain_list
 
     @property
     def name_to_testids(self):
@@ -404,6 +620,11 @@ class DependsManager(object):
 
         assert self.tests is not None
         return self._testid_to_test
+
+    @property
+    def testid_to_test_wrapper(self):
+        assert self.tests is not None
+        return self._testid_to_test_wrapper
 
     def sorted_tests(self, suiteclass=None):
         """ Get a sorted list of tests where all tests are sorted after their dependencies. """
@@ -483,6 +704,12 @@ class DependsManager(object):
 
         assert self.tests is not None
         return self._depends
+
+    @property
+    def newid_to_test_depends(self):
+
+        assert self.tests is not None
+        return self._newid_to_test_depends
 
     def get_missing(self, test):
 

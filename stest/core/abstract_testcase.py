@@ -11,6 +11,7 @@ import inspect
 import unittest
 from ..conf import settings
 from ..conf import SettingsFileFinder
+from ..conf import image_show
 from ..utils.sutils import strclass
 from .test_wrapper import Test
 
@@ -93,7 +94,7 @@ class AbstractTestCase(unittest.TestCase):
             # 如果有设置依赖管理器，则运行依赖管理器
             if dm is not None:
 
-                addFailure = getattr(result, 'addFailure', None)
+                addFailure = getattr(result, 'mark_test_failure', None)
 
                 # 检查是否有无法解析的依赖
                 missing = dm.get_missing(self)
@@ -141,6 +142,19 @@ class AbstractTestCase(unittest.TestCase):
                             addFailure(self, exc_info)
                     return result
         return super().run(result=result)
+
+    def show2html(self, *, base64data="", filepath="", name="", **other_info):
+        """显示截图到html测试报告中
+
+        Parameters
+        ----------
+        master : 截图所的对象，主要是用来指示截图显示在html测试报告中的哪个区域，目前只有测试用例对象(`AbstractTestCase`)才会生效
+        base64data : base64编码的截图文件数据，如果同时提供filepath，则有限使用filepath，忽略该参数
+        filepath : 截图文件完整路径
+        name : 在html报告中显示的名称
+        other_info : 其它信息
+        """
+        return image_show.show2html(self, base64data=base64data, filepath=filepath, name=name, other_info=other_info)
 
     @classmethod
     def collect_testcases(cls, args_namespace=None, print_tips=False):

@@ -136,7 +136,7 @@ class SevenTestProgram(unittest.TestProgram):
             settings, "PROJECT_NAME", "")
         summary_info['task_number'] = self.task if self.task else start_time.strftime(
             "%Y%m%d%H%M%S%f")
-        ReportBuilder(result).build_html_report(fname, **summary_info)
+        ReportBuilder(result, settings).build_html_report(fname, **summary_info)
         if notice:
             print('html report file: {}'.format(fname))
         return fname
@@ -189,7 +189,7 @@ class SevenTestProgram(unittest.TestProgram):
             settings, "PROJECT_NAME", "")
         summary_info['task_number'] = self.task if self.task else start_time.strftime(
             "%Y%m%d%H%M%S%f")
-        ReportBuilder(result).build_jenkins_junit_xml_report(fname, **summary_info)
+        ReportBuilder(result, settings).build_jenkins_junit_xml_report(fname, **summary_info)
         if notice:
             print('jenkins junit xml report file: {}'.format(fname))
         return fname

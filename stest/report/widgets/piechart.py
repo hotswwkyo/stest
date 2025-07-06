@@ -73,7 +73,8 @@ class PieChart(elements.Svg):
 
     def _build(self):
 
-        viewbox = "{x} {y} {width} {height}".format(x="0", y="0", width=self.width, height=self.height)
+        viewbox = "{x} {y} {width} {height}".format(
+            x="0", y="0", width=self.width, height=self.height)
         self.set_attr("viewBox", viewbox)
 
         # 累加datas的值，以便于知道饼状图的大小
@@ -120,7 +121,8 @@ class PieChart(elements.Svg):
 
             # 下面的字符串包含路径的详细信息
             # 设置<svg:path>元素的属性
-            svg_path.M(self.cx, self.cy).L(x1, y1).A(x2, y2, self.r, self.r, big, "0", "1").Z().set_d_attr()
+            svg_path.M(self.cx, self.cy).L(x1, y1).A(
+                x2, y2, self.r, self.r, big, "0", "1").Z().set_d_attr()
             svg_path.set_attr("fill", color)  # 设置楔的颜色
             svg_path.set_attr("stroke", "black")  # 楔的外边框为黑色
             svg_path.set_attr("stroke-width", "0.7")  # 两个单位宽
@@ -131,7 +133,7 @@ class PieChart(elements.Svg):
             startangle = endagle
 
             # 现在绘制一些相应的小方块来表示图例
-            icon_width = 70
+            icon_width = 10
             icon = self.draw_svg_rect(label)
             icon.set_attr("x", self.lx)  # 定位小方块
             icon.set_attr("y", str(int(self.ly) + 30 * i))
@@ -144,7 +146,8 @@ class PieChart(elements.Svg):
                 icon.add_css_class(part[self.LEGEND_CSS_CLASS_KEY])
 
             # 在小方块的右边添加标签
-            icon_text = self.draw_svg_text(label, self.attach_suffix(label, self.percent(data, total)))
+            icon_text = self.draw_svg_text(
+                label, self.attach_suffix(label, self.percent(data, total)))
             icon_text.set_attr("x", str(int(self.lx) + icon_width + 10))  # 定位标签文本
             icon_text.set_attr("y", str(int(self.ly) + 30 * i + 9))  # 文本样式属性还可以通过CSS来设置
             icon_text.set_attr("fill", color)
@@ -163,10 +166,14 @@ if __name__ == "__main__":
     cy = 100
     r = 100
     parts = [
-        PieChart.build_part(0, "失败", "red", pie_chart_css_class="fail", legend_css_class="fail-legend", legend_text_css_class="fail-legend-text"),
-        PieChart.build_part(27, "成功", "green", pie_chart_css_class="success", legend_css_class="success-legend", legend_text_css_class="success-legend-text"),
-        PieChart.build_part(0, "阻塞", "sandybrown", pie_chart_css_class="block", legend_css_class="block-legend", legend_text_css_class="block-legend-text"),
-        PieChart.build_part(0, "异常", "antiquewhite", pie_chart_css_class="error", legend_css_class="error-legend", legend_text_css_class="error-legend-text")
+        PieChart.build_part(0, "失败", "red", pie_chart_css_class="fail",
+                            legend_css_class="fail-legend", legend_text_css_class="fail-legend-text"),
+        PieChart.build_part(27, "成功", "green", pie_chart_css_class="success",
+                            legend_css_class="success-legend", legend_text_css_class="success-legend-text"),
+        PieChart.build_part(0, "阻塞", "sandybrown", pie_chart_css_class="block",
+                            legend_css_class="block-legend", legend_text_css_class="block-legend-text"),
+        PieChart.build_part(0, "异常", "antiquewhite", pie_chart_css_class="error",
+                            legend_css_class="error-legend", legend_text_css_class="error-legend-text")
     ]
     pie = PieChart(parts, width, height, cx, cy, r)
     with open(r"D:\tmsuitest\sp.html", "w", encoding="utf-8") as f:

@@ -171,7 +171,7 @@ class DriverManager(attrs_manager.AttributeManager):
 
         Usage
         ------
-        ```py
+        ```
         DriverManager.add_selenium_webdriver(\"chrome\", \"Chrome\", module=\"selenium.webdriver\")
         DRIVER_MANAGER.open_browser(\"chrome\")
         ```

@@ -26,12 +26,13 @@ class HtmlReportTemplate(object):
     JS_FILE_NAME = "main.js"
     JQUERY_FILE_NAME = "jquery-1.11.0.min.js"
 
-    def __init__(self, testpoints, title="", task_number="", start_time="", finish_time="", executor="", project_name="", task_description=""):
+    def __init__(self, testpoints, settings=None, title="", task_number="", start_time="", finish_time="", executor="", project_name="", task_description=""):
 
         self.html = elements.HTML()
         self.title = title
-        self.summary_table = tables.SummaryTable(title, task_number, start_time, finish_time, executor, project_name, task_description, self.pie_chart_info(testpoints))
-        self.report_table = tables.ReportTable()
+        self.summary_table = tables.SummaryTable(
+            title, task_number, start_time, finish_time, executor, project_name, task_description, self.pie_chart_info(testpoints))
+        self.report_table = tables.ReportTable(settings=settings)
         self.testpoints = testpoints
         self.layer = elements.Div().add_css_class("layer")
         self.html.body.append_child(self.layer)

@@ -66,6 +66,7 @@ class SevenTestResult(TextTestResult):
 
     @host(RunStage.stopTest)
     def stopTest(self, test):
+
         rv = super().stopTest(test)
         fcounter = time.perf_counter()
         setattr(test, FixedField.STEST_FINISH_PERF_COUNTER, fcounter)
@@ -115,6 +116,19 @@ class SevenTestResult(TextTestResult):
             return '\n'.join((str(test), short_desc))
         else:
             return str(test)
+
+    def mark_test_failure(self, testcase, err):
+        """用例所依赖的其它用例没有成功，则标记该用例
+
+        Parameters
+        ----------
+        testcase : 测试用例
+        err : a tuple of values as
+        returned by sys.exc_info().
+        """
+        self._setupStdout()
+        self.addFailure(testcase, err)
+        self.restore_stdout()
 
     def _get_output_message(self):
 

@@ -13,6 +13,7 @@ import subprocess
 from ..utils import sutils
 from ..utils import attrs_manager
 from ..utils import attrs_marker
+from ..conf import image_show
 from ..core.errors import WindowNotFound
 from ..dm import driver_manager
 from ..dm import win_app_driver_helper
@@ -964,25 +965,151 @@ class AbstractPage(attrs_manager.AttributeManager):
         script = "arguments[0].click();"
         return self.execute_script(script, web_element)
 
-    def scroll_to(self, xpos, ypos):
-        """scroll to any position of an opened window of browser"""
+    def scroll_to(self, x: int, y: int, element=None):
+        """控制浏览器或元素滚动到指定坐标位置
 
-        js_code = "window.scrollTo(%s, %s);" % (xpos, ypos)
-        self.execute_script(js_code)
+        Args:
+            x (int): 水平滚动位置
+            y (int): 垂直滚动位置
+            element (WebElement, optional): 目标元素，None表示浏览器窗口
+        """
+        if element is None:
+            # 浏览器窗口滚动（兼容Firefox/Chrome）
+            self.execute_script("window.scrollTo({x}, {y});".format(x=x, y=y))
+        else:
+            # 元素内部滚动（兼容各版本）
+            self.execute_script("arguments[0].scrollTo({x}, {y});".format(x=x, y=y), element)
+        return self
 
-    def scroll_into_view(self, web_element):
+    def scroll_into_view(self, element):
 
         js_code = 'arguments[0].scrollIntoView();'
-        self.execute_script(js_code, web_element)
+        self.execute_script(js_code, element)
 
-    def scroll_to_bottom(self):
+    def scroll_to_top(self, element=None):
+        """
+        将浏览器窗口或元素滚动条滚动到顶部
 
-        bottom = self.execute_script("return document.body.scrollHeight;")
-        self.scroll_to(0, bottom)
+        Args:
+            element (WebElement, optional): 目标元素.
+                None表示浏览器窗口. Defaults to None.
 
-    def scroll_to_top(self):
+        Version:
+            Selenium 3.x/4.x通用实现
 
-        self.scroll_to(0, 0)
+        Example:
+            >>> scroll_to_top()  # 浏览器窗口滚动到顶部
+            >>> scroll_to_top(element)  # 元素滚动到顶部
+        """
+        if element is None:
+            # 浏览器窗口滚动到顶部
+            self.execute_script("window.scrollTo({top: 0, behavior: 'smooth'});")
+        else:
+            # 元素内部滚动到顶部
+            self.execute_script("arguments[0].scrollTo({top: 0, behavior: 'smooth'});", element)
+        return self
+
+    def scroll_to_bottom(self, element=None):
+        """
+        将浏览器窗口或元素滚动条滚动到底部
+
+        Args:
+            element (WebElement, optional): 目标元素.
+                None表示浏览器窗口. Defaults to None.
+        """
+        if element is None:
+            # 浏览器窗口滚动到底部
+            self.execute_script(
+                "window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
+        else:
+            # 元素内部滚动到底部
+            self.execute_script(
+                "arguments[0].scrollTo({top: arguments[0].scrollHeight, behavior: 'smooth'});", element)
+        return self
+
+    def scroll_to_left(self, element=None):
+        """
+        将浏览器窗口或元素滚动条滚动到最左侧
+
+        Args:
+            element (WebElement, optional): 目标元素.
+                None表示浏览器窗口. Defaults to None.
+
+        Version:
+            Selenium 3.x/4.x通用实现
+
+        Example:
+            >>> scroll_to_left()  # 浏览器窗口滚动到最左
+            >>> scroll_to_left(element)  # 元素滚动到最左
+        """
+        if element is None:
+            # 浏览器窗口滚动到最左侧
+            self.execute_script("window.scrollTo(0, 0);")
+        else:
+            # 元素内部滚动到最左侧
+            self.execute_script("arguments[0].scrollLeft = 0;", element)
+        return self
+
+    def scroll_to_right(self, element=None):
+        """
+        滚动到浏览器窗口或元素最右侧
+
+        Args:
+            element (WebElement, optional): 目标元素.
+                None表示浏览器窗口. Defaults to None.
+
+        Version:
+            Selenium 3.x/4.x通用实现
+
+        Example:
+            >>> scroll_to_right()  # 浏览器窗口滚动到最右
+            >>> scroll_to_right(element)  # 元素滚动到最右
+        """
+        if element is None:
+            # 浏览器窗口滚动到最右侧
+            self.execute_script("window.scrollTo(document.body.scrollWidth, 0);")
+        else:
+            # 元素内部滚动到最右侧
+            self.execute_script("arguments[0].scrollLeft = arguments[0].scrollWidth;", element)
+        return self
+
+    def scroll_to_center(self, vertical=True, horizontal=False, element=None):
+        """
+        将浏览器窗口或元素滚动条滚动到中间位置
+
+        Args:
+            vertical (bool): 是否垂直滚动到中间. Defaults to True.
+            horizontal (bool): 是否水平滚动到中间. Defaults to False.
+            element (WebElement, optional): 目标元素. None表示浏览器窗口. Defaults to None.
+
+        Version:
+            Selenium 3.x/4.x通用实现
+
+        Example:
+            >>> scroll2center()  # 浏览器窗口垂直居中
+            >>> scroll2center(element=el, horizontal=True)  # 元素水平居中
+        """
+        js_template = """
+        var target = arguments[0] || window;
+        if(arguments[1]) {  // vertical
+            target.scrollTo({
+                top: target === window ?
+                    document.body.scrollHeight/2 - window.innerHeight/2 :
+                    arguments[0].scrollHeight/2 - arguments[0].clientHeight/2,
+                behavior: 'smooth'
+            });
+        }
+        if(arguments[2]) {  // horizontal
+            target.scrollTo({
+                left: target === window ?
+                    document.body.scrollWidth/2 - window.innerWidth/2 :
+                    arguments[0].scrollWidth/2 - arguments[0].clientWidth/2,
+                behavior: 'smooth'
+            });
+        }
+        """
+        self.execute_script(js_template, element, vertical, horizontal)
+        return self
 
     def drag_and_drop(self, source, target):
 
@@ -997,6 +1124,61 @@ class AbstractPage(attrs_manager.AttributeManager):
             page.screenshot("E:\\SevenPytest\\screenshots\\debug.png")
         """
         return ScreenshotCapturer.screenshot(file_name, self.driver)
+
+    def show2html(self, testcase, *, name="", path=None):
+        """截图并显示到html测试报告中
+
+        Parameters
+        ----------
+        testcase : 测试用例实例，显示在html测试报告中的哪个测试用例下
+        name : 在html报告中显示的名称
+        path : 截图保存路径
+        filepath : 截图文件完整路径
+
+        Usage
+        -----
+        ```
+        import stest
+        from erp_autotest.pages.login import LoginPage
+
+        class LoginTest(stest.AbstractTestCase):
+            @classmethod
+            def setUpClass(cls):
+
+                cls.url = "https://tv.cctv.com/live/cctv13"
+                cls.username = "zhangsan"
+                cls.password = "123456"
+
+            def setUp(self):
+                pass
+
+            @stest.Test(name="demo1", groups=["ss"])
+            def demo1(self):
+
+                page = LoginPage()
+                page.chrome().open_url(cls.url).actions.login(cls.username, cls.password).sleep(2)
+                page.show2html(self)
+                page.show2html(self, path="E:\\erp_autotest\\screenshots\\debug.png")
+
+            def tearDown(self):
+                pass
+
+            @classmethod
+            def tearDownClass(cls):
+                LoginPage.DRIVER_MANAGER.close_all_drivers()
+
+        if __name__ == "__main__":
+            LoginTest.run_test(buffer=True, argv=["python -m stest", "-g", "ss"])
+        ```
+        """
+        if path:
+            ScreenshotCapturer.screenshot(path, self.driver)
+            base64data = ""
+        else:
+            base64data = ScreenshotCapturer.screenshot_as_base64(self.driver)
+        image_show.show2html(testcase, base64data=base64data, filepath=path,
+                             name=name)
+        return self
 
     @property
     def session_id(self):
@@ -1298,6 +1480,10 @@ class AbstractPage(attrs_manager.AttributeManager):
         def __init__(self, page):
 
             self.page = page
+            self.init()
+
+        def init(self):
+            pass
 
         def sleep(self, seconds):
             """延时"""
@@ -1309,6 +1495,10 @@ class AbstractPage(attrs_manager.AttributeManager):
         def __init__(self, page):
 
             self.page = page
+            self.init()
+
+        def init(self):
+            pass
 
         def sleep(self, seconds):
             """延时"""

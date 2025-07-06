@@ -90,6 +90,12 @@ class TestCaseWrapper(AttributeManager):
         return self._kwargs.get(k, {})
 
     @property
+    def user_screenshots(self):
+
+        k = 'user_screenshots'
+        return self._kwargs.get(k, [])
+
+    @property
     def testpoint(self):
         if self.is_abstract_testcase:
             classname = self.test.strclass()
@@ -222,9 +228,10 @@ class TestCaseWrapper(AttributeManager):
 
 
 class TestResultFormatter(object):
-    def __init__(self, test_result):
+    def __init__(self, test_result, settings=None):
 
         self.__test_result = test_result
+        self.__settings = settings
 
     @property
     def result(self):
@@ -253,6 +260,7 @@ class TestResultFormatter(object):
                     error_message=tc.error_message,
                     screenshot_info=tc.screenshot_info,
                     extra_info=tc.extra_info,
+                    user_screenshots=tc.user_screenshots,
                 )
                 results.append(result)
             testpoint = dict(name=pointname,
@@ -280,31 +288,31 @@ class TestResultFormatter(object):
         id = 1
         for test, message in self.result.errors:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.ERROR,
-                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
+                                message=message, screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
         for test, message in self.result.skipped:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SKIPED,
-                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
+                                message=message, screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
 
         for test, message in self.result.failures:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.FAILURE,
-                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
+                                message=message, screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
 
         for test, message in self.result.successes:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.SUCCESS, message=(
-                message,), screenshot_info=self.result.screenshots.get(test, {})))
+                message,), screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
 
         for test, message in self.result.expectedFailures:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XFAILURE,
-                                message=message, screenshot_info=self.result.screenshots.get(test, {})))
+                                message=message, screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
 
-        for test, message in self.result.unexpectedSuccesses:
+        for test in self.result.unexpectedSuccesses:
             testcaselist.append(TestCaseWrapper(test, id, TestCaseWrapper.XSUCCESS,
-                                screenshot_info=self.result.screenshots.get(test, {})))
+                                screenshot_info=self.result.screenshots.get(test, {}), user_screenshots=getattr(self.__settings, "USER_SCREENSHOTS", {}).get(test, [])))
             id = id + 1
         testcaselist.sort(key=lambda one: one.exec_number)
         return testcaselist

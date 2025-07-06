@@ -42,7 +42,7 @@ class Test(object):
         - data_provider: 测试方法的参数化数据提供者，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表
         测试方法只有一个参数化时，data_provider 返回值是 一维列表，如:
 
-        ```py
+        ```python
         def ia_data_provider(testclass, testmethod, *args, **kwargs):
             return [1,2,3,4,5]
 
@@ -60,6 +60,74 @@ class Test(object):
             print(testdata01)
             print(testdata_02)
         ```
+
+    **Usages**
+        - 用例依赖参数dname和depends参数使用示例
+        ```python
+        #!/usr/bin/env python
+        # -*- encoding: utf-8 -*-
+        '''
+        @Author: 思文伟
+        @Date: 2021/09/29
+        '''
+
+        import stest
+        from stest import AbstractTestCase
+        from stest import Test as testcase
+
+
+        class DependTest(AbstractTestCase):
+            \"""依赖设置测试\"""
+            @classmethod
+            def setUpClass(cls):
+                pass
+
+            def setUp(self):
+                pass
+
+            @testcase(priority=1, enabled=True, author='思文伟', description='dtest1', depends=['vnctest.py'])
+            def dtest1(self):
+                \""" 用例依赖于vnctest.py模块中的所有用例 \"""
+
+                pass
+
+            @testcase(priority=2, enabled=True, author='思文伟', description='dtest2', depends=['vnctest.py.LoginTest'])
+            def dtest2(self):
+                \""" 用例依赖于vnctest.py模块中LoginTest类的所有用例 \"""
+
+                pass
+
+            @testcase(priority=2, enabled=True, author='思文伟', description='dtest3', depends=['vnctest.py.LoginTest.login'])
+            def dtest3(self):
+                \""" 用例依赖于vnctest.py模块中LoginTest类的login用例 \"""
+                pass
+
+            @testcase(priority=2, enabled=True, author='思文伟', description='dtest4', dname='four')
+            def dtest4(self):
+                \""" 命名用例为 four \"""
+                pass
+
+            @testcase(priority=2, enabled=True, author='思文伟', description='dtest5', depends=['dtest6'])
+            def dtest5(self):
+                \""" 用例依赖于当前类的dtest6用例\"""
+                pass
+
+            @testcase(priority=2, enabled=True, author='思文伟', description='dtest6', depends=['four'])
+            def dtest6(self):
+                \""" 用例依赖于当前类的命名为four的dtest4用例\"""
+                pass
+
+            def tearDown(self):
+                pass
+
+            @classmethod
+            def tearDownClass(cls):
+                pass
+
+        if __name__ == '__main__':
+            stest.main()
+        ```
+
     """
 
     # 添加到测试方法的属性名

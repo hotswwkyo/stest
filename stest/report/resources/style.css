@@ -548,7 +548,7 @@ tr.testcase-hidden {
 }
 
 .testpoint-name {
-	width: 70%;
+	width: 60%;
 }
 
 .teststeps {
@@ -1032,4 +1032,17 @@ textarea {
 .fieldset-normal-content{
 	padding-left: 21px;
     padding-right: 21px;
+}
+
+.statistics td span {
+	margin-right: 10px;
+}
+
+.user-screenshot {
+    width: 100%;
+    cursor: pointer;
+}
+
+.user-screenshots-showarea p span {
+    margin-right: 10px;
 }

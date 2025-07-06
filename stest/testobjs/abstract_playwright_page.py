@@ -2,7 +2,9 @@
 # -*- encoding: utf-8 -*-
 import time
 import typing
+import base64
 from stest import hook
+from ..conf import image_show
 from ..utils import attrs_manager
 from ..utils import attrs_marker
 from ..dm import DRIVER_MANAGER
@@ -167,16 +169,38 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         time.sleep(seconds)
         return self
 
-    def execute_script(self, script, *args):
+    def execute_script(self, script: str, args: typing.Optional[typing.Any] = None):
         """refer to the `Page.evaluate`"""
 
         return self.driver.page.evaluate(script, args)
 
-    def scroll_to(self, xpos, ypos):
-        """scroll to any position of an opened window of browser"""
+    def scroll_to(self, x: int, y: int, element: Locator = None):
+        """scroll to any position of an opened window of browser or scrollable element 滚动到指定坐标位置
 
-        js_code = "([xpos,ypos]) => window.scrollTo(xpos, ypos);"
-        self.execute_script(js_code, xpos, ypos)
+        Parameters
+        ----------
+            x : int - 水平滚动位置
+            y : int - 垂直滚动位置
+            element : Locator - 目标元素定位器(None表示滚动浏览器窗口)
+        """
+        if element is None:
+            # 浏览器窗口滚动
+            self.execute_script("""([x, y]) => {{
+                window.scrollTo({{
+                    left: x,
+                    top: y,
+                    behavior: 'smooth'
+                }});
+            }}""", [x, y])
+        else:
+            # 元素内部滚动
+            element.evaluate("""(el, [x, y]) => {{
+                el.scrollTo({{
+                    left: x,
+                    top: y,
+                    behavior: 'smooth'
+                }});
+            }}""", [x, y])
         return self
 
     def scroll_into_view(self, element: Locator):
@@ -185,15 +209,159 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         element.evaluate(js_code)
         return self
 
-    def scroll_to_bottom(self):
+    def scroll_to_center(self, vertical=True, horizontal=False, element: Locator = None):
+        """将浏览器窗口或元素滚动条居中
 
-        bottom = self.execute_script("()=> document.body.scrollHeight;")
-        self.scroll_to(0, bottom)
+        Parameters
+        ----------
+            vertical : bool - 是否垂直居中 (默认True)
+            horizontal : bool - 是否水平居中 (默认False)
+            element : Locator - 目标元素定位器 (None表示滚动浏览器窗口)
+        """
+        if element is None:
+            # 浏览器窗口滚动
+            self.execute_script("""([vertical, horizontal]) => {
+                if (vertical) {
+                    const centerY = document.body.scrollHeight/2 - window.innerHeight/2;
+                    window.scrollTo({top: centerY, behavior: 'smooth'});
+                }
+                if (horizontal) {
+                    const centerX = document.body.scrollWidth/2 - window.innerWidth/2;
+                    window.scrollTo({left: centerX, behavior: 'smooth'});
+                }
+            }""", [vertical, horizontal])
+        else:
+            # 元素内部滚动
+            if vertical:
+                element.evaluate("""
+                    el => {
+                        const centerY = (el.scrollHeight - el.clientHeight) / 2;
+                        el.scrollTo({top: centerY, behavior: 'smooth'});
+                    }
+                """)
+
+            if horizontal:
+                element.evaluate("""
+                    el => {
+                        const centerX = (el.scrollWidth - el.clientWidth) / 2;
+                        el.scrollTo({left: centerX, behavior: 'smooth'});
+                    }
+                """)
         return self
 
-    def scroll_to_top(self):
+    def scroll_to_bottom(self, element: Locator = None):
+        """滚动到浏览器窗口或元素底部
 
-        self.scroll_to(0, 0)
+        Parameters
+        ----------
+            element : Locator - 目标元素定位器(None表示滚动浏览器窗口)
+        """
+        if element is None:
+            # 浏览器窗口滚动到底部
+            self.execute_script("""() => {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }""")
+        else:
+            # 元素内部滚动到底部
+            element.evaluate("""el => {
+                el.scrollTo({
+                    top: el.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }""")
+        return self
+
+    def scroll_to_top(self, element: Locator = None):
+        """
+        滚动到浏览器窗口或元素顶部
+
+        Args:
+            element (Locator, optional): 目标元素定位器.
+                None表示浏览器窗口. Defaults to None.
+
+        Example:
+            >>> page.scroll_to_top()  # 浏览器窗口滚动到顶部
+            >>> page.scroll_to_top(element)  # 元素滚动到顶部
+        """
+        if element is None:
+            # 浏览器窗口滚动到顶部
+            self.execute_script("""() => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }""")
+        else:
+            # 元素内部滚动到顶部
+            element.evaluate("""el => {
+                el.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }""")
+        return self
+
+    def scroll_to_left(self, element: Locator = None):
+        """
+        滚动到浏览器窗口或元素最左侧
+
+        Args:
+            element (Locator, optional): 目标元素定位器.
+                None表示浏览器窗口. Defaults to None.
+
+        Example:
+            >>> page.scroll_to_left()  # 浏览器窗口滚动到最左
+            >>> page.scroll_to_left(element)  # 元素滚动到最左
+        """
+        if element is None:
+            # 浏览器窗口滚动到最左侧
+            self.execute_script("""() => {
+                window.scrollTo({
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            }""")
+        else:
+            # 元素内部滚动到最左侧
+            element.evaluate("""el => {
+                el.scrollTo({
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            }""")
+        return self
+
+    def scroll_to_right(self, element: Locator = None):
+        """
+        滚动到浏览器窗口或元素最右侧
+
+        Args:
+            element (Locator, optional): 目标元素定位器.
+                None表示浏览器窗口. Defaults to None.
+
+        Example:
+            >>> page.scroll_to_right()  # 浏览器窗口滚动到最右
+            >>> page.scroll_to_right(element)  # 元素滚动到最右
+        """
+        if element is None:
+            # 浏览器窗口滚动到最右侧
+            self.execute_script("""() => {
+                window.scrollTo({
+                    left: document.body.scrollWidth,
+                    behavior: 'smooth'
+                });
+            }""")
+        else:
+            # 元素内部滚动到最右侧
+            element.evaluate("""el => {
+                el.scrollTo({
+                    left: el.scrollWidth,
+                    behavior: 'smooth'
+                });
+            }""")
         return self
 
     def screenshot(self, path=None, full_page=None, clip=None, **others):
@@ -213,10 +381,67 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
             An object which specifies clipping of the resulting image.
         others : refer to the `Page.screenshot`
 
-        Usage:
+        Usage
+        -----
             page.screenshot(path="E:\\SevenPytest\\screenshots\\debug.png")
         """
         return self.pwpage.screenshot(path=path, full_page=full_page, clip=clip, **others)
+
+    def show2html(self, testcase, *, name="", path=None, **screenshot_kwargs):
+        """截图并显示到html测试报告中
+
+        Parameters
+        ----------
+        testcase : 测试用例实例，显示在html测试报告中的哪个测试用例下
+        name : 在html报告中显示的名称
+        path : 截图保存路径
+        filepath : 截图文件完整路径
+        other_info : 其它信息
+
+        Usage
+        -----
+        ```
+        import stest
+        from erp_autotest.pages.login import LoginPage
+
+        class LoginTest(stest.AbstractTestCase):
+            @classmethod
+            def setUpClass(cls):
+
+                cls.url = "https://tv.cctv.com/live/cctv13"
+                cls.username = "zhangsan"
+                cls.password = "123456"
+
+            def setUp(self):
+                pass
+
+            @stest.Test(name="demo1", groups=["ss"])
+            def demo1(self):
+
+                page = LoginPage()
+                page.chrome().open_url(cls.url).actions.login(cls.username, cls.password).sleep(2)
+                page.show2html(self)
+                page.show2html(self, path="E:\\erp_autotest\\screenshots\\debug.png")
+
+            def tearDown(self):
+                pass
+
+            @classmethod
+            def tearDownClass(cls):
+                LoginPage.DRIVER_MANAGER.close_all_drivers()
+
+        if __name__ == "__main__":
+            LoginTest.run_test(buffer=True, argv=["python -m stest", "-g", "ss"])
+        ```
+        """
+        raw_data = self.pwpage.screenshot(path=path, **screenshot_kwargs)
+        if path:
+            base64data = ""
+        else:
+            base64data = base64.b64encode(raw_data).decode()
+        image_show.show2html(testcase, base64data=base64data, filepath=path,
+                             name=name)
+        return self
 
     @property
     def title(self):
@@ -231,7 +456,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         **Usage**
 
-        ```py
+        ```
         frame = page.frame(url=r\".*domain.*\")
         ```
 
@@ -458,6 +683,10 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
     class Elements(object):
         def __init__(self, page):
             self.page = typing.cast(PageClass, page)
+            self.init()
+
+        def init(self):
+            pass
 
         def sleep(self, seconds):
             """延时"""
@@ -469,6 +698,10 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         def __init__(self, page):
 
             self.page = typing.cast(PageClass, page)
+            self.init()
+
+        def init(self):
+            pass
 
         def sleep(self, seconds):
             """延时"""

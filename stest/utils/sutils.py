@@ -207,20 +207,16 @@ def prompt(title="", tips="", encoding="utf-8"):
     root.update_idletasks()
     # root.deiconify()    #now window size was calculated
     # root.withdraw()     #hide window again
-    root.geometry('%sx%s+%s+%s' % (root.winfo_width() + 10, root.winfo_height() + 10, (screen_width -
-                  root.winfo_width()) / 2, (screen_height - root.winfo_height()) / 2))  # center window on desktop
+    x = int((screen_width - root.winfo_width()) / 2)
+    y = int((screen_height - root.winfo_height()) / 2)
+    root.geometry('%sx%s+%s+%s' % (root.winfo_width() + 10,
+                  root.winfo_height() + 10, x, y))  # center window on desktop
     root.update()
     root.withdraw()
 
     # root.deiconify()
     # add some widgets to the root window
-    if not isinstance(title, bytes):
-        title = title.decode(encoding)
-    if not isinstance(tips, bytes):
-        tips = tips.decode(encoding)
     value = tkinter.simpledialog.askstring(title, tips)
-    if value is None:
-        value = ""
     return value
 
 

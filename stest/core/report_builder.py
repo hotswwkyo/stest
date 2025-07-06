@@ -13,9 +13,10 @@ from ..report.jenkins_junit_xml_template import JenkinsJunitXMLReportTemplate
 
 
 class ReportBuilder(object):
-    def __init__(self, result):
+    def __init__(self, result, gsettings=None):
 
         self.result = result
+        self.settings = gsettings
 
     def build_html_report(self, filename, **summary_info):
         """
@@ -33,16 +34,17 @@ class ReportBuilder(object):
                 task_description: 测试任务描述信息
         """
 
-        json_result = TestResultFormatter(self.result).to_py_json()
+        json_result = TestResultFormatter(self.result, self.settings).to_py_json()
         testpoints = json_result.get("testpoints")
-        template = HtmlReportTemplate(testpoints, **summary_info)
+        template = HtmlReportTemplate(testpoints, settings=self.settings, **summary_info)
         mkdirs(os.path.dirname(filename))
         template.save_as_file(filename)
 
     def build_jenkins_junit_xml_report(self, filename, **summary_info):
 
-        json_result = TestResultFormatter(self.result).to_py_json()
+        json_result = TestResultFormatter(self.result, self.settings).to_py_json()
         testpoints = json_result.get("testpoints")
-        template = JenkinsJunitXMLReportTemplate(testpoints, test_suite_name=summary_info.get('project_name', 'stest'))
+        template = JenkinsJunitXMLReportTemplate(
+            testpoints, test_suite_name=summary_info.get('project_name', 'stest'))
         mkdirs(os.path.dirname(filename))
         template.save_as_file(filename)
