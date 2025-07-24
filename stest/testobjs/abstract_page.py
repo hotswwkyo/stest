@@ -1133,7 +1133,6 @@ class AbstractPage(attrs_manager.AttributeManager):
         testcase : 测试用例实例，显示在html测试报告中的哪个测试用例下
         name : 在html报告中显示的名称
         path : 截图保存路径
-        filepath : 截图文件完整路径
 
         Usage
         -----

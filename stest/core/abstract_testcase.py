@@ -148,7 +148,6 @@ class AbstractTestCase(unittest.TestCase):
 
         Parameters
         ----------
-        master : 截图所的对象，主要是用来指示截图显示在html测试报告中的哪个区域，目前只有测试用例对象(`AbstractTestCase`)才会生效
         base64data : base64编码的截图文件数据，如果同时提供filepath，则有限使用filepath，忽略该参数
         filepath : 截图文件完整路径
         name : 在html报告中显示的名称
