@@ -12,8 +12,10 @@ from ..dm.driver_manager import DriverManager
 from ..dm.playwright_driver import PlaywrightDriver
 from ..dm.playwright_driver import SupportBrowserType
 
-from playwright.sync_api import Playwright
+from playwright.sync_api import Page
 from playwright.sync_api import Locator
+from playwright.sync_api import Playwright
+
 
 PageClass = typing.TypeVar("PageClass", bound="AbstractPlaywrightPage")
 
@@ -36,10 +38,21 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
     def __init__(self, driver_or_browser_type=None, alias=None, *, browser_launch_args={}, browser_context_args={}):
         """一般不建议创建页面的时候直接创建驱动实例，建议页面实例化后再调用页面提供的相关驱动实例化方法更好
 
-        Args
-        -------
-        driver_or_browser_type : instance of PlaywrightDriver or browser type  default value is `None`
-            support browser type is chromium | firefox | webkit
+        **Useage**
+
+        ```python
+
+        CinemaInfoPage("chromium", browser_launch_args=dict(channel="chrome"))
+
+        CinemaInfoPage().chrome()
+
+        ```
+
+        Parameters
+        ----------
+
+        driver_or_browser_type : instance of PlaywrightDriver or browser type,  default value is `None`.
+            support browser type is chromium | firefox | webkit.  为None不会创建驱动实例.
         alias : 缓存中存放驱动实例的别名
         browser_launch_args : refer to the `BrowserType.launch`
         browser_context_args : refer to the `BrowserType.new_context`
@@ -51,7 +64,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
                                  browser_launch_args=browser_launch_args, browser_context_args=browser_context_args)
         elif driver_or_browser_type:
             self.__dm.register_driver(driver_or_browser_type, alias)
-
+        self.default_page: Page = None
         self._build_elements()
         self._build_actions()
         self.init()
@@ -387,6 +400,107 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         """
         return self.pwpage.screenshot(path=path, full_page=full_page, clip=clip, **others)
 
+    def switch2page(self, page: Page):
+
+        if self.default_page is None:
+            self.default_page = self.pwpage
+        self.driver.page = page
+        self.pwpage.bring_to_front()
+        return self
+
+    def switch_to_default_page(self):
+
+        if self.default_page is not None and self.default_page != self.pwpage:
+            self.switch2page(self.default_page)
+        return self
+
+    def get_playwright_pages_by_title(self, title: typing.Union[str, typing.Pattern[str]], exact: typing.Optional[bool] = False) -> typing.List[Page]:
+        """get playwright page by title
+
+        **Usage**
+
+        Consider the following pages:
+
+        - page 1, its title is Hello World
+
+        - page 2, its title is hello world
+
+        You can locate by title substring, exact string, or a regular expression:
+
+        ```py
+        # Matches page 1
+        page.get_playwright_pages_by_title(\"World\")
+
+        # Matches page 2
+        page.get_playwright_pages_by_title(\"world\")
+
+        # Matches page 2
+        page.get_playwright_pages_by_title(\"hello world\", exact=True)
+
+        # Matches page 1
+        page.get_playwright_pages_by_title(re.compile(\"Hello\"))
+
+        # Matches both page 1 and page 2
+        page.get_playwright_pages_by_title(re.compile(\"^hello\", re.IGNORECASE))
+        ```
+
+        Parameters
+        ----------
+        title : Union[Pattern[str], str]
+            title of page.
+        exact : Union[bool, None]
+            Whether to find an exact match: case-sensitive and whole-string, note that exact match will trims whitespace. Default to false. Ignored when locating by a
+            regular expression.
+
+        Returns
+        -------
+        typing.List[Page]
+        """
+        pages = []
+        if isinstance(title, typing.Pattern):
+            for page in self.driver.context.pages:
+                if title.search(page.title()):
+                    pages.append(page)
+        else:
+            for page in self.driver.context.pages:
+                if exact:
+                    if page.title().strip() == title:
+                        pages.append(page)
+                else:
+                    if page.title().strip().find(title) != -1:
+                        pages.append(page)
+        return pages
+
+    def get_playwright_pages_by_url(self, url: typing.Union[str, typing.Pattern[str]], exact: typing.Optional[bool] = False) -> typing.List[Page]:
+        """get playwright page by url
+
+        Parameters
+        ----------
+        url : Union[Pattern[str], str]
+            url of page.
+        exact : Union[bool, None]
+            Whether to find an exact match: case-sensitive and whole-string, note that exact match will trims whitespace. Default to false. Ignored when locating by a
+            regular expression.
+
+        Returns
+        -------
+        typing.List[Page]
+        """
+        pages = []
+        if isinstance(url, typing.Pattern):
+            for page in self.driver.context.pages:
+                if url.search(page.url):
+                    pages.append(page)
+        else:
+            for page in self.driver.context.pages:
+                if exact:
+                    if page.url.strip() == url:
+                        pages.append(page)
+                else:
+                    if page.url.strip().find(url) != -1:
+                        pages.append(page)
+        return pages
+
     def show2html(self, testcase, *, name="", path=None, **screenshot_kwargs):
         """截图并显示到html测试报告中
 
@@ -395,7 +509,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
         testcase : 测试用例实例，显示在html测试报告中的哪个测试用例下
         name : 在html报告中显示的名称
         path : 截图保存路径
-        screenshot_kwargs : 其它信息
+        screenshot_kwargs : Page.screenshot的其它参数
 
         Usage
         -----
@@ -537,7 +651,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         Parameters
         ----------
-        refer to the `Browser.new_context`
+        browser_context_args : refer to the `Browser.new_context`
 
         Returns
         -------

@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 import re
+import json
+import typing
 from typing import List
 from typing import Union
+from playwright.sync_api import Page
 from playwright.sync_api import Locator
-from stest.testobjs.abstract_playwright_page import AbstractPlaywrightPage as Page
+from stest.testobjs.abstract_playwright_page import AbstractPlaywrightPage
 
 
 class Cell(object):
 
-    def __init__(self, position, *, cxpath=None, title=None, value=None, element_tag="td"):
+    SETABLE_PROPERTYS: typing.Final = (
+        "title", "cxpath", "value", "position", "settings", "element_tag")
+
+    def __init__(self, position, *, cxpath=None, title=None, value=None, element_tag="td", settings: dict = None):
         """
 
         Parameters
@@ -19,6 +25,7 @@ class Cell(object):
         title : 单元格标题
         value : 单元格内容
         element_tag : 单元格元素标签（一般为th或td）
+        settings: dict 其它配置信息
         """
 
         self.title = title
@@ -27,6 +34,9 @@ class Cell(object):
         self.cxpath = cxpath
         self.element_tag = element_tag
         self.xpath_func = None
+        self.settings: dict = {}
+        if settings is not None:
+            self.settings.update(settings)
 
     def _add_condition(self, xpath, condition, logical_symbol="and"):
         predicates = r'(\[((?:[^"\'[\]]|\'(?:[^\']|\'\')*\'|"(?:[^"]|"")*")*?)\])$'
@@ -63,7 +73,7 @@ class Cell(object):
 
         xpath = '{}[{}]'.format(self.element_tag, self.position)
         if self.cxpath:
-            xpath = Page.join_xpaths(xpath, self.cxpath)
+            xpath = AbstractPlaywrightPage.join_xpaths(xpath, self.cxpath)
         if self.value is not None:
             xpath = self._add_condition(xpath, 'normalize-space()="{}"'.format(self.value))
         return xpath
@@ -88,9 +98,15 @@ class Cell(object):
         else:
             return self.build_xpath()
 
+    def set_by_dict(self, **options):
+
+        for k, v in options.items():
+            if k in self.SETABLE_PROPERTYS:
+                self.__setattr__(k, v)
+
 
 class Table(object):
-    """表格"""
+    """通用定位表格"""
 
     INDEX_KEY = "index"
     TITLE_KEY = "title"
@@ -110,7 +126,7 @@ class Table(object):
     # 相对于DEFAULT_HEAD_XPATH的xpath
     DEFAULT_BODY_XPATH = './ancestor::table/parent::div/following-sibling::div[contains(@class,"el-table__body-wrapper")]/table/tbody'
 
-    def __init__(self, parent: Union[Page, Locator], *titles):
+    def __init__(self, parent: Union[Page, Locator, AbstractPlaywrightPage], *titles):
         """
 
         Parameters
@@ -624,7 +640,7 @@ class Table(object):
 
         ```
         """
-        self.parent = parent
+        self.__parent = parent
         self.__head_columns = self.__build_head_columns(*titles)
         self.__body_columns = self.__build_body_columns(*titles)
         self.row_element_name = self.ROW_ELEMENT_NAME
@@ -632,9 +648,18 @@ class Table(object):
         self.body_element_name = self.BODY_ELEMENT_NAME
         self.__default_head_xpath = self.DEFAULT_HEAD_XPATH
         self.__default_body_xpath = self.DEFAULT_BODY_XPATH
-        self.__exclude_titles = []
+        self.__non_data_columns: typing.List[Cell] = []
 
-    join_xpaths = Page.join_xpaths
+    join_xpaths = AbstractPlaywrightPage.join_xpaths
+
+    @property
+    def parent(self):
+
+        return self.__parent.pwpage if isinstance(self.__parent, AbstractPlaywrightPage) else self.__parent
+
+    @parent.setter
+    def parent(self, value: Union[Page, Locator, AbstractPlaywrightPage]):
+        self.__parent = value
 
     def __build_head_columns(self, *titles, element_tag="th"):
 
@@ -652,6 +677,7 @@ class Table(object):
     def __format_titles(self, *titles, cxpath=None, value=None, element_tag="td") -> List[Cell]:
 
         nt = []
+        same_indexs = set()
         if self.__all_subelement_is_datatype(str, titles):
             for i, title in enumerate(titles):
                 nt.append(Cell(i + 1, title=title, cxpath=cxpath,
@@ -660,6 +686,10 @@ class Table(object):
             for title in titles:
                 ei = title[self.INDEX_KEY]
                 et = title[self.TITLE_KEY]
+                if ei in same_indexs:
+                    raise ValueError('has same index: {}'.format(ei))
+                else:
+                    same_indexs.add(ei)
                 cxpath = title.get(self.XPATH_KEY, cxpath)
                 value = title.get(self.VALUE_KEY, value)
                 nt.append(Cell(ei, title=et, cxpath=cxpath,
@@ -668,6 +698,10 @@ class Table(object):
             for title in titles:
                 ei = title[0]
                 et = title = title[1]
+                if ei in same_indexs:
+                    raise ValueError('has same index: {}'.format(ei))
+                else:
+                    same_indexs.add(ei)
                 if len(title) >= 3:
                     cxpath = title[2]
                 if len(title) >= 4:
@@ -675,7 +709,8 @@ class Table(object):
                 nt.append(Cell(title[0], title=title[1], cxpath=cxpath,
                           value=value, element_tag=element_tag))
         else:
-            raise ValueError()
+            raise ValueError(
+                "invalid titles, titles  parameter can only be list or tuple, and it's subelement can only be one of a string, dictionary, list, or tuple. {}".format(titles))
         return nt
 
     def __all_subelement_is_datatype(self, datatype, datas):
@@ -691,10 +726,12 @@ class Table(object):
 
     @property
     def head_columns(self):
+        """表头单元格"""
         return self.__head_columns
 
     @property
     def body_columns(self):
+        """正文单元格"""
         return self.__body_columns
 
     @property
@@ -703,6 +740,7 @@ class Table(object):
 
     @default_head_xpath.setter
     def default_head_xpath(self, xpath):
+        """表格头部xpath，一般定位到table的thead元素"""
         self.__default_head_xpath = xpath
 
     @property
@@ -711,7 +749,7 @@ class Table(object):
 
     @default_body_xpath.setter
     def default_body_xpath(self, xpath):
-        """相对于default_head_xpath的body元素xpath"""
+        """相对于default_head_xpath的body元素xpath，一般定位到table的tbody元素"""
         self.__default_body_xpath = xpath
 
     def set_body_cell_xpath(self, cxpath, *titles):
@@ -729,8 +767,15 @@ class Table(object):
         return self
 
     def set_head_cell_xpath(self, cxpath, *titles):
+        """设置表头表格单元格xpath
 
-        for col in self.body_columns:
+        Parameters
+        ----------
+        cxpath : 单元格中内容元素相对xpath，相对于单元格元素(td或th)
+        titles : 单元格标题
+        """
+
+        for col in self.head_columns:
             if col.title in titles:
                 col.cxpath = cxpath
         return self
@@ -739,12 +784,194 @@ class Table(object):
         """标记非数据列，返回单元格数据时，排除标记的这些列单元格，如： 操作列 都是些按钮
         这时返回一行的各单元格数据时，就不用返回该列"""
 
-        self.__exclude_titles.extend(titles)
+        for title in titles:
+            for cell in self.body_columns:
+                if title == cell.title:
+                    self.__non_data_columns.append(cell)
         return self
+
+    def mark_non_data_columns_by_position(self, *poslist):
+
+        for pos in poslist:
+            for cell in self.body_columns:
+                if pos == cell.position:
+                    self.__non_data_columns.append(cell)
+        return self
+
+    def get_columns_by_title(self, title, body=True) -> typing.List[Cell]:
+        """获取给定列标题的所有列
+
+        Parameters
+        ----------
+        title: str
+            列标题
+        body: bool
+            控制获取表头列，还是正文列，True-正文列 False-表头列, 默认值是True，即正文列
+        """
+
+        r_columns = []
+        if body:
+            columns = self.body_columns
+        else:
+            columns = self.head_columns
+
+        for cell in columns:
+            if cell.title == title:
+                r_columns.append(cell)
+        return r_columns
+
+    def get_column_by_title(self, title, body=True):
+        """通过列标题获取表格列，如果有相同标题的多列，则只返回第一个，建议使用`Table.get_column_by_index`来精确获取
+
+        Parameters
+        ----------
+        title: str
+            列标题
+        body: bool
+            控制获取表头列，还是正文列，True-正文列 False-表头列, 默认值是True，即正文列
+        """
+
+        if body:
+            columns = self.body_columns
+        else:
+            columns = self.head_columns
+        column = None
+        for cell in columns:
+            if cell.title == title:
+                column = cell
+                break
+        if column is None:
+            raise ValueError("The columns does not exist, column title : {}".format(title))
+        return column
+
+    def get_columns_by_index(self, index, body=True) -> typing.List[Cell]:
+        """获取给定索引的所有列
+
+        Parameters
+        ----------
+        index: int
+            索引，从1开始
+        body: bool
+            控制获取表头列，还是正文列，True-正文列 False-表头列, 默认值是True，即正文列
+        """
+
+        r_columns = []
+        if body:
+            columns = self.body_columns
+        else:
+            columns = self.head_columns
+
+        for cell in columns:
+            if cell.position == index:
+                r_columns.append(cell)
+        return r_columns
+
+    def get_column_by_index(self, index, body=True):
+        """通过列索引获取表格列
+
+        Parameters
+        ----------
+        index: int
+            列索引，从1开始
+        body: bool
+            控制获取表头列，还是正文列，True-正文列 False-表头列, 默认值是True，即正文列
+        """
+
+        columns = self.get_columns_by_index(index, body)
+        count = len(columns)
+        if count < 1:
+            raise ValueError("The columns does not exist, column index : {}".format(index))
+        elif count == 1:
+            return columns[0]
+        else:
+            raise ValueError("has duplicate column index, column index : {}".format(index))
+
+    def get_duplicate_position_columns(self, which_part: typing.Literal["head", "body", "both"] = "both"):
+        """获取table中body olumns和head columns各自存在相同position的列
+
+        Parameters
+        ----------
+        which_part: str
+            控制检查哪里有重复索引列
+            - head 表头
+            - body 正文
+            - both 表头 和 正文
+
+        Returns
+        -------
+        包含重复position信息的字典，{'head': [重复的head_cell列表], 'body': [重复的body_cell列表]}
+        """
+
+        def find_same_position_cells(columns):
+            same = []
+            group = {}
+            for cell in columns:
+                if cell.position in group:
+                    group[cell.position].append(cell)
+                else:
+                    group[cell.position] = [cell]
+            for position, cells in group.items():
+                if len(cells) > 1:
+                    same.extend(cells)
+            return same
+
+        result = {
+            'head': [],
+            'body': []
+        }
+        if which_part == "head":
+            hc = find_same_position_cells(self.head_columns)
+            result["head"].extend(hc)
+        elif which_part == "body":
+            bc = find_same_position_cells(self.body_columns)
+            result["body"].extend(bc)
+        elif which_part == "both":
+            hc = find_same_position_cells(self.head_columns)
+            bc = find_same_position_cells(self.body_columns)
+            result["head"].extend(hc)
+            result["body"].extend(bc)
+        else:
+            raise ValueError(
+                "invalid value of which_part parameter, it can only be head, body or both.")
+        return result
+
+    def has_duplicate_position_columns(self, which_part: typing.Literal["head", "body", "both"] = "both"):
+        """判断table中body_columns和head_columns各自内部是否存在相同position的cell，如果任一内部存在重复position返回True，否则返回False
+
+        Parameters
+        ----------
+        which_part: str
+            控制检查哪里有重复索引列
+            - head 表头
+            - body 正文
+            - both 表头 和 正文
+
+        Returns
+        -------
+        bool
+        """
+        def has_same_position(columns: typing.List[Cell]):
+            positions = set()
+            for cell in columns:
+                if cell.position in positions:
+                    return True
+                positions.add(cell.position)
+            return False
+
+        if which_part == "head":
+            return has_same_position(self.head_columns)
+        elif which_part == "body":
+            return has_same_position(self.body_columns)
+
+        elif which_part == "both":
+            return has_same_position(self.head_columns) or has_same_position(self.body_columns)
+        else:
+            raise ValueError(
+                "invalid value of which_part parameter, it can only be head, body or both.")
 
     @property
     def head_xpath(self):
-
+        """表头xpath"""
         p1 = self.join_xpaths(self.default_head_xpath, self.row_element_name)
         parts = []
         for column in self.__head_columns:
@@ -760,12 +987,71 @@ class Table(object):
             xpath = self.join_xpaths(p1, rp, prefix=self.XPATH_PREFIX)
         return xpath
 
+    def head_cell(self, title, index: typing.Optional[int] = None):
+        """返回匹配的表头单元格
+
+        Parameters
+        ----------
+        title: str
+            单元格内容
+        index: typing.Optional[int]
+            单元格在行中的索引位置，从1开始
+        """
+
+        parts = []
+        for column in self.__head_columns:
+            if index is None:
+                if column.title == title:
+                    cellxpath = column.xpath
+                    parts.append(cellxpath)
+            else:
+                if column.title == title and column.position == index:
+                    cellxpath = column.xpath
+                    parts.append(cellxpath)
+        r = '/{}/'.format(self.row_element_name)
+        if parts:
+            if len(parts) > 2:
+                p2 = r.join(parts)
+            else:
+                p2 = self.join_xpaths(r, parts[0])
+            xpath = self.join_xpaths(self.head_xpath, p2)
+        else:
+            raise ValueError("未设置该标题：{}".format(title))
+        return self.parent.locator(xpath)
+
     @property
     def body_xpath(self):
         xpath = self.join_xpaths(self.head_xpath, self.default_body_xpath)
         return xpath
 
     def row_xpath(self, cells: dict, **return_settings):
+        """根据给定的行信息字段，生成行或者单元格xpath
+
+        Parameters
+        ----------
+        cells: dict
+            行信息字典, 如：{"专资编码":"80002048","营业状态":"开业"}，如果是空字典则返回匹配表格所有行的xpath
+        return_settings:
+            控制返回的xpath，变长参数，参数说明如下
+            - `el_type`  元素类型，row 或者cell， row即行元素（tr）， cell即单元格元素（td或者th下的元素）, 默认返回cell的xpath
+            - `title`  要返回的单元格的标题，el_type为cell时有效，不传则默认返回第一个单元格的xpath
+
+        **Useage**
+
+        Consider the following table:
+
+        | 专资编码 |  影城名称  | 营业状态 |
+        |:----:|:----|:-----|
+        | 80002048 | 影院名称-80002048 | 开业 |
+        | 80002105 | 影院名称-80002105 | 停业 |
+        | 80002212 | 影院名称-80002212 | 开业 |
+
+
+        ```python
+        row_xpath({"专资编码":"80002048","营业状态":"开业"}, el_type="row")
+        ### match -> | 80002048 | 影院名称-80002048 | 开业 |
+        ```
+        """
 
         p1 = "./{}".format(self.row_element_name)
         if not cells:
@@ -800,11 +1086,11 @@ class Table(object):
         return self.join_xpaths(self.body_xpath, xpath)
 
     def row(self, cells: dict, **return_settings):
-        """返回列表匹配的所有行
+        """返回列表匹配的所有行，有相同标题的列时，建议用`row2(cells: dict, **return_settings)`方法
 
         Parameters
         ----------
-        row : 行信息字典, 如：{"专资编码":"80002048","营业状态":"开业"}
+        row : 行信息字典, 如：{"专资编码":"80002048","营业状态":"开业"}，如果是空字典则返回表格所有行
         return_settings : 控制返回的元素设置，变长参数，参数说明如下
             - `el_type`  元素类型，row 或者cell， row即行元素（tr）， cell即单元格元素（td或者th下的元素）, 默认返回cell
             - `title`  要返回的单元格的标题，el_type为cell时有效，不传则默认返回第一个单元格
@@ -828,38 +1114,155 @@ class Table(object):
         selector = self.row_xpath(cells, **return_settings)
         return self.parent.locator(selector)
 
-    def cells(self, row: Locator):
-        """返回一行的各单元格数据，非数据列不会返回"""
+    def row_xpath2(self, cells: dict, **return_settings):
+        """根据给定的行信息字段，生成行或者单元格xpath，当有相同标题的列时，该方法能准确生成，
 
+        Parameters
+        ----------
+        cells: dict
+            行信息字典，键为单元格所在列的索引, 如：{1:"80002048",2:"开业"}，索引从1开始，如果是空字典则返回匹配表格所有行的xpath
+        return_settings:
+            控制返回的xpath，变长参数，参数说明如下
+            - `el_type`  元素类型，row 或者cell， row即行元素（tr）， cell即单元格元素（td或者th下的元素）, 默认返回cell的xpath
+            - `index`  要返回的单元格的标题，el_type为cell时有效，不传则默认返回第一个单元格的xpath
+
+        Useage
+        ------
+        table as follow:
+
+            --------------------------------------
+            | 专资编码  |   影城名称    | 营业状态 |
+            --------------------------------------
+            | 80002048 | 影院名称-80002048 | 开业 |
+            --------------------------------------
+            | 80002105 | 影院名称-80002105 | 停业 |
+            --------------------------------------
+            | 80002212 | 影院名称-80002212 | 开业 |
+            --------------------------------------
+        ```python
+        row_xpath({1:"80002048",2:"开业"}, el_type="row")
+        ### match -> | 80002048 | 影院名称-80002048 | 开业 |
+        ```
+        """
+
+        p1 = "./{}".format(self.row_element_name)
+        if not cells:
+            return self.join_xpaths(self.body_xpath, p1)
+        columns: List[Cell] = []
+        for t, v in cells.items():
+            for col in self.__body_columns:
+                if col.position == t:
+                    col.value = v
+                    columns.append(col)
+                    break
+        columns.sort(key=lambda one: one.position)
+        others = []
+        for cell in columns:
+            others.append(cell.xpath)
+        p2 = '/ancestor::{}/'.format(self.row_element_name).join(others)
+        el_type = return_settings.get("el_type", "cell")
+        pos = columns[0].position if columns else self.body_columns[0].position
+        column_index = return_settings.get("index", pos)
+        if el_type == "cell":
+            cell_xpath = ""
+            for c in self.__body_columns:
+                if c.position == column_index:
+                    cell_xpath = c.xpath
+                    break
+            p3 = self.join_xpaths('ancestor::{}'.format(self.row_element_name), cell_xpath)
+        else:
+            p3 = 'ancestor::{}'.format(self.row_element_name)
+        xpath = self.join_xpaths(p1, p2)
+        if not xpath.endswith(p3):
+            xpath = self.join_xpaths(xpath, p3)
+        return self.join_xpaths(self.body_xpath, xpath)
+
+    def row2(self, cells: dict, **return_settings):
+        """返回列表匹配的所有行，该方法通过单元格所在列索引（从1开始）来传单元格内容
+
+        Parameters
+        ----------
+        row : 行信息字典，键为单元格所在列的索引, 如：{1:"80002048",2:"开业"}，索引从1开始，如果是空字典则返回表格所有行
+        return_settings : 控制返回的元素设置，变长参数，参数说明如下
+            - `el_type`  元素类型，row 或者cell， row即行元素（tr）， cell即单元格元素（td或者th下的元素）, 默认返回cell
+            - `index`  要返回的单元格的标题，el_type为cell时有效，不传则默认返回第一个单元格
+
+        Useage
+        ------
+        table as follow:
+
+            --------------------------------------
+            | 专资编码  |   影城名称    | 营业状态 |
+            --------------------------------------
+            | 80002048 | 影院名称-80002048 | 开业 |
+            --------------------------------------
+            | 80002105 | 影院名称-80002105 | 停业 |
+            --------------------------------------
+            | 80002212 | 影院名称-80002212 | 开业 |
+            --------------------------------------
+        row({1:"80002048",2:"开业"}) -> | 80002048 | 影院名称-80002048 | 开业 |
+        """
+
+        selector = self.row_xpath2(cells, **return_settings)
+        return self.parent.locator(selector)
+
+    def cells(self, row: Locator, return_locator=False, title_as_key=True) -> typing.Dict[str, typing.Union[str, Locator]]:
+        """返回一行的各单元格数据，非数据列不会返回
+
+        Parameters
+        ----------
+
+        return_locator: bool
+            控制返回元素locator还是返回元素内容
+        """
         js_code = '(element)=> element.tagName;'
         tag_name = row.evaluate(js_code)
         return_cells = {}
-        columns = []
+        columns: typing.List[Cell] = []
+        ndc_poslist = [ndc_cell.position for ndc_cell in self.__non_data_columns]
         for c in self.body_columns:
-            if c.title not in self.__exclude_titles:
+            if c.position not in ndc_poslist:
                 columns.append(c)
         if isinstance(tag_name, str) and tag_name.lower() == "tr".lower():
             for cell in columns:
                 xpath = self.join_xpaths("./", cell.xpath, prefix=self.XPATH_PREFIX)
                 el_cell = row.locator(xpath)
-                return_cells[cell.title] = el_cell.text_content()
+                if title_as_key:
+                    ckey = cell.title
+                else:
+                    ckey = cell.position
+                return_cells[ckey] = el_cell if return_locator else el_cell.text_content()
         else:
             for cell in columns:
-                el_cell = self.sibling_cell(row, cell.title)
-                return_cells[cell.title] = el_cell.text_content()
+                el_cell = self.sibling_cell(row, cell.position, by="position")
+                if title_as_key:
+                    ckey = cell.title
+                else:
+                    ckey = cell.position
+                return_cells[ckey] = el_cell if return_locator else el_cell.text_content()
         return return_cells
 
-    def cell(self, row: Locator, title):
+    def cell(self, row: Locator, title_or_position, by: typing.Literal["title", "position"] = "title"):
 
-        titles = [o.title for o in self.body_columns]
+        # titles = [o.title for o in self.body_columns]
         js_code = '(element)=> element.tagName;'
         tag_name = row.evaluate(js_code)
         rc = None
         for c in self.body_columns:
-            if c.title == title:
+            if by == "title":
+                cv = c.title
+            else:
+                cv = c.position
+            if cv == title_or_position:
                 rc = c
         if rc is None:
-            raise ValueError("表格未设置该标题列：{}，已设置的表格标题列如下：{}".format(title, " ".join(titles)))
+            if by == "title":
+                dtype = "列标题"
+            else:
+                dtype = "列号（从1开始）"
+            celllist = [{"列号": cell.position, "列标题": cell.title}for cell in self.body_columns]
+            raise ValueError("表格未设置该列->{}：{}，已设置的如下：{}".format(dtype,
+                             title_or_position, json.dumps(celllist, ensure_ascii=False)))
         if isinstance(tag_name, str) and tag_name.lower() == "tr".lower():
             xpath = self.join_xpaths("./", rc.xpath, prefix=self.XPATH_PREFIX)
             el_cell = row.locator(xpath)
@@ -868,10 +1271,14 @@ class Table(object):
             el_cell = self.sibling_cell(row, rc.title)
             return el_cell
 
-    def sibling_cell(self, cell: Locator, title):
+    def sibling_cell(self, cell: Locator, condition, by: typing.Literal["title", "position"] = "title"):
 
         for col in self.body_columns:
-            if col.title == title:
+            if by == "title":
+                cv = col.title
+            else:
+                cv = col.position
+            if cv == condition:
                 cxpath = col.xpath
                 break
         r = './ancestor::{}'.format(self.row_element_name)

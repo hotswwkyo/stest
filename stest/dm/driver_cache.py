@@ -190,3 +190,7 @@ class DriverCache(object):
     def __nonzero__(self):
 
         return self._current_driver is not None
+
+    def __bool__(self):
+
+        return self._current_driver is not None

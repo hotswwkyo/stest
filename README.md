@@ -298,9 +298,7 @@ if __name__ == '__main__':
 
 | 参数 | 类型 | 描述 |
 | :---- | :---- | :---- |
-| name | 字符串 | 测试用例名称 |
-| author | 字符串 | 用例编写者 |
-| editors | 列表 | 修改者列表 |
+| name | 字符串 | 测试用例名称，未传或者为空，则取测试用例方法docstring的首行 |
 | dname | 字符串或列表 | 用于给用例起一个用于设置依赖的名称 |
 | depends | 列表 | 用于设置用例依赖，是一个用例依赖列表 |
 | groups | 列表 | 方法所属的组的列表|
@@ -313,8 +311,6 @@ if __name__ == '__main__':
 | data_provider_kwargs | 字典 | 数据提供者变长关键字参数(kwargs) |
 | screenshot | 布尔值 | 控制该用例测试失败是否截图，该设置优先级大于配置文件中的截图设置 |
 | attach_screenshot_to_report | 布尔值 | 控制该用例是否附加测试失败的截图到测试报告中，优先级大于配置文件中的截图设置 |
-| last_modifyied_by | 字符串 | 最后修改者 |
-| last_modified_time | 字符串 | 最后一次修改的时间 |
 | enable_default_data_provider | 布尔值 | 是否使用内置数据提供者(SevenDataProvider)，默认值是True，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider) |
 
 ## 用例依赖设置

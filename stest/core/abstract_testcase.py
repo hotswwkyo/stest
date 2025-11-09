@@ -66,7 +66,9 @@ class AbstractTestCase(unittest.TestCase):
     def shortDescription(self):
 
         name = Test.get_test_marker(self.test_method_obj, key=Test.NAME, default_value=None)
-        return name or None
+        doc = self.test_method_obj.__doc__
+        first_line = doc.strip().split("\n")[0].strip() if doc else None
+        return name or first_line
 
     def id(self):
         return "{}.{}".format(strclass(self.__class__), self._test_method_name)

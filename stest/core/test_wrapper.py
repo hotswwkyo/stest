@@ -22,9 +22,7 @@ class Test(object):
     Args
     -------
     settings: 设置项, 键定义如下
-        - name: 测试用例名称
-        - author: 用例编写者
-        - editors: 修改者列表
+        - name: 测试用例名称，未传或者为空，则取测试用例方法docstring的首行
         - dname: 用于给用例起一个用于设置依赖的名称
         - depends: 用于设置用例依赖，是一个用例依赖列表
         - groups: 方法所属的组的列表
@@ -34,8 +32,6 @@ class Test(object):
         - description: 原用于设置测试用例名称，现在该参数未做任何用途
         - screenshot: 测试失败是否截图，如果不传该参数，则取全局配置的设置
         - attach_screenshot_to_report: 是否附加测试失败的截图到测试报告中，如果不传该参数，则取全局配置的设置
-        - last_modifyied_by: 最后修改者
-        - last_modified_time: 最后一次修改的时间
         - enable_default_data_provider: 是否使用内置数据提供者(SevenDataProvider)，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider)
         - data_provider_args: 数据提供者变长位置参数(args)
         - data_provider_kwargs: 数据提供者变长关键字参数(kwargs)
@@ -138,10 +134,8 @@ class Test(object):
 
     # TEST_MARKER键名
     NAME = "name"
-    AUTHOR = 'author'
     DNAME = 'dname'  # 该键名用于给用例起一个用于设置依赖的名称
     DEPENDS = 'depends'  # 该键名用于设置用例依赖，是一个用例依赖列表
-    EDITORS = 'editors'
     GROUPS = 'groups'
     ENABLED = 'enabled'
     PRIORITY = 'priority'
@@ -153,8 +147,6 @@ class Test(object):
     DATA_PROVIDER = 'data_provider'
     DATA_PROVIDER_ARGS = 'data_provider_args'
     DATA_PROVIDER_KWARGS = 'data_provider_kwargs'
-    LAST_MODIFYIED_BY = 'last_modifyied_by'
-    LAST_MODIFYIED_TIME = 'last_modified_time'
     SCREENSHOT = "screenshot"
     ATTACH_SCREENSHOT_TO_REPORT = "attach_screenshot_to_report"
     ENABLE_DEFAULT_DATA_PROVIDER = 'enable_default_data_provider'
@@ -187,10 +179,6 @@ class Test(object):
         DATA_PROVIDER: None,
         DATA_PROVIDER_ARGS: (),
         DATA_PROVIDER_KWARGS: {},
-        AUTHOR: '',
-        EDITORS: [],
-        LAST_MODIFYIED_BY: '',
-        LAST_MODIFYIED_TIME: '',
         ENABLE_DEFAULT_DATA_PROVIDER: True,
         # 内置标志位，用于判断最终使用的是默认的data provider 还是调用者提供的，该值由该类自动设置，不需要用户设置
         _FINAL_ENABLE_DEFAULT_DATA_PROVIDER: False,
