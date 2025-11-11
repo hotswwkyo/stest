@@ -622,6 +622,8 @@ tr.testcase-hidden {
 pre {
 	white-space: pre-wrap;
 	word-wrap: break-word;
+	word-break: break-word;
+	overflow-wrap: break-word;
 	padding: 0px;
     margin: 0px;
 }
