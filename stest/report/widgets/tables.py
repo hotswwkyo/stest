@@ -482,16 +482,49 @@ class ReportTable(elements.Table):
             el_content.append_child(img_area)
         return el_fs
 
-    def __build_message_area(self, message_list, label="控制台信息"):
+    def __default_message_handler(self, message_list, gsettings, test_case=None):
+
+        msglist = []
+        line_break = "\n"
+        name = "HTML_REPORT_RAW_HTML_PREFIX"
+        prefix = getattr(gsettings, name, None)
+        for msg in message_list:
+            lines = msg.split(line_break)
+            for line in lines:
+                if isinstance(prefix, str) and line.startswith(prefix):
+                    one = line[len(prefix):]
+                else:
+                    one = html.escape(line, False)
+                msglist.append(one)
+        outputmsg = line_break.join(msglist) if msglist else ''
+        return outputmsg
+
+    def __message_handler(self, message_list, test_case=None):
+
+        name = 'HTML_REPORT_MESSAGE_RENDERER'
+        handler = getattr(self.settings, name, None)
+        if callable(handler):
+            try:
+                final_message = handler(message_list, self.settings, test_case)
+            except Exception as err:
+                warnings.warn(self.to_printable(err), category=StestWarning, stacklevel=2)
+                final_message = self.__default_message_handler(
+                    message_list, self.settings, test_case)
+            else:
+                if not isinstance(final_message, str):
+                    final_message = self.__default_message_handler(
+                        message_list, self.settings, test_case)
+        else:
+            final_message = self.__default_message_handler(message_list, self.settings, test_case)
+        return final_message
+
+    def __build_message_area(self, message, label="控制台信息"):
 
         el_fs, el_item, el_title, el_content = self.__build_fieldset()
         el_title_name = elements.Span(html.escape(label, False))
-
         el_title.append_child(el_title_name)
         el_title_name.add_css_class("seven-testcase-traceback")
-
-        outputmsg = '\n'.join(message_list) if message_list else ''
-        el_content.append_child(elements.Pre(html.escape(outputmsg, False)))
+        el_content.append_child(elements.Pre(message))
         return el_fs
 
     def _build_console_row(self, testcase_html_id, teststep_zone_html_id, testcase):
@@ -519,7 +552,9 @@ class ReportTable(elements.Table):
             show_div.append_child(self.__build_params_area(
                 kwargs, label="关键字参数", param_type="kwargs"))
         if message[0] or message[1]:
-            show_div.append_child(self.__build_message_area(message))
+            tc_message = self.__message_handler(message, test_case=dict(
+                name=testcase["name"], method_name=testcase["method_name"]))
+            show_div.append_child(self.__build_message_area(tc_message))
         show_div.append_child(self.__build_extra_info_area(testcase["extra_info"], label="基本信息"))
         if attach_screenshot_to_report:
             show_div.append_child(self.__build_screenshot_area(screenshot_info, label="失败自动截图"))

@@ -224,6 +224,8 @@ if __name__ == '__main__':
 | `TEST_PARAM_ALIAS` | `@Test` 参数别名字典，用于测试报告中参数显示名称映射 |
 | `TEST_PARAM_NAME_FORMAT_STRING` | `@Test` 参数格式化字符串或函数。字符串可用变量：`{param}`（参数字段）、`{alias}`（参数别名）；函数接收字段名和别名两个参数，返回字符串 |
 | `TEST_PARAM_VALUE_FORMATTER` | `@Test` 参数值格式化。字典（键为参数名，值为格式化函数）或统一格式化函数，函数接收参数名和参数值两个参数 |
+| `HTML_REPORT_RAW_HTML_PREFIX` | HTML 报告原始 HTML 输出前缀。在 `print()` 输出中，以该前缀开头的行将不做 HTML 转义，直接作为原始 HTML 输出到报告中（可用于输出带 HTML 标签的富文本内容）。默认为 `None`（不启用） |
+| `HTML_REPORT_MESSAGE_RENDERER` | HTML 报告消息自定义渲染函数。接收三个参数：`message_list`（消息列表）、`settings`（全局配置）、`test_case`（用例信息字典），返回渲染后的字符串。未设置或返回非字符串时使用默认处理（ HTML 转义） |
 
 ### 配置文件示例
 
@@ -279,7 +281,28 @@ def test_param_value_formatter(param, value):
 
 
 TEST_PARAM_VALUE_FORMATTER = dict(related_testcases=test_param_value_formatter)
+
+# HTML 报告原始 HTML 输出前缀，print 输出中以该前缀开头的行不做 HTML 转义，直接作为原始 HTML 输出到报告
+HTML_REPORT_RAW_HTML_PREFIX = "[RAW]"
+
+# HTML 报告消息自定义渲染函数
+def message_renderer(message_list, settings, test_case=None):
+    rows = []
+    for msg in message_list:
+        lines = msg.split("\n")
+        for line in lines:
+            prefix = getattr(settings, "HTML_REPORT_RAW_HTML_PREFIX", None)
+            if isinstance(prefix, str) and line.startswith(prefix):
+                rows.append(line[len(prefix):])
+            else:
+                rows.append(html.escape(line, False))
+    return "\n".join(rows)
+
+HTML_REPORT_MESSAGE_RENDERER = message_renderer
 ```
+
+> 使用 `-b` 参数运行测试，`print()` 输出才会被捕获并显示到 HTML 报告中：
+> `python -m stest -v -b -html report.html test_module.py`
 
 ![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_01.png)
 
