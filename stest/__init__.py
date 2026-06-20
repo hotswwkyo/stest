@@ -21,7 +21,7 @@
 
 
 Simple usage:
-```py
+```python
     import os
 
     from stest import settings
@@ -59,8 +59,8 @@ Simple usage:
         def setUp(self):
             pass
 
-        # 自定义数据提供者 - 测试方法一个参数化示例
-        @testcase(priority=1, enabled=True, data_provider=DataProvider01().get_testdatas, author='思文伟', description='整数加法测试01')
+        # 自定义数据提供者 - 测试方法有一个参数，参数化示例
+        @testcase(priority=1, enabled=True, data_provider=DataProvider01().get_testdatas, author='思文伟', name='整数加法测试01')
         def integer_addition_01(self, testdata):
 
             number_1 = testdata.get("加数1")
@@ -69,8 +69,8 @@ Simple usage:
             result = number_1 + number_2
             self.assertEqual(result, expected)
 
-        # 自定义数据提供者 - 测试方法多个参数化示例
-        @testcase(priority=2, enabled=True, data_provider=DataProvider02().get_testdatas, author='思文伟', description='整数加法测试02')
+        # 自定义数据提供者 - 测试方法有多个参数，参数化示例
+        @testcase(priority=2, enabled=True, data_provider=DataProvider02().get_testdatas, author='思文伟', name='整数加法测试02')
         def integer_addition_02(self, testdata_01, testdata_02, testdata_03):
 
             number_1 = testdata_01.get("加数1")
@@ -80,8 +80,8 @@ Simple usage:
             result = number_1 + number_2
             self.assertEqual(result, expected)
 
-        # 不参数化示例
-        @testcase(priority=3, enabled=True, author='思文伟', description='整数减法测试01')
+        # 无参数示例
+        @testcase(priority=3, enabled=True, author='思文伟', name='整数减法测试01')
         def integer_subtraction_01(self):
 
             number_1 = 21
@@ -91,7 +91,7 @@ Simple usage:
             self.assertEqual(result, expected)
 
         # 使用内置的数据提供者 - 传入测试数据文件所在的目录路径
-        @testcase(priority=4, enabled=True, author='思文伟', data_provider_kwargs={'data_file_dir_path':TEST_DATA_FILE_DIRPATH}, description='整数减法测试02')
+        @testcase(priority=4, enabled=True, author='思文伟', data_provider_kwargs={'data_file_dir_path':TEST_DATA_FILE_DIRPATH}, name='整数减法测试02')
         def integer_subtraction_02(self, testdata):
 
             number_1 = testdata.get("减数1")
@@ -104,7 +104,7 @@ Simple usage:
         # 使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
         # 则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
         # 没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
-        @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
+        @testcase(priority=5, enabled=True, author='思文伟', name='整数减法测试03')
         def integer_subtraction_03(self,testdata):
 
             number_1 = testdata.get("减数1")

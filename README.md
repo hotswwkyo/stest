@@ -1,42 +1,46 @@
 # stest
- 更友好、更灵活的编写、管理与运行测试，生成更加美观的独立单文件HTML报告。内置参数化测试数据存取方案，省去设计的烦恼，节省更多的时间，从而更快的投入到编写用例阶段。
- * 现已支持的功能
-    >* 支持命名测试方法且不与方法的doc string（文档字符串）冲突
-    >* 支持设置测试方法编写人，修改人，最后修改人以及最后一次修改时间等额外记录信息
-    >* 支持设置测试方法的执行顺序
-    >* 支持参数化功能
-    >* 支持数据驱动测试
-    >* 支持设置用例依赖
-    >* 支持快速添加截图到测试报告
-    >* 内置参数化数据存取方案(使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护)
-    >* 支持生成更加简洁美观且可作为独立文件发送的HTML测试报告
-    >* 支持生成jenkins junit xml 格式测试报告，用于jenkins集成
-    >* 支持自动查找并载入项目下的settings.py配置文件
-    >* 支持灵活控制测试失败自动截图并附加到测试报告中
-    >* 支持page object模式，内置一套易于维护的解决方案
-    >* 驱动管理器（DRIVER_MANAGER）更加便捷的管理打开的驱动会话
-    >* 提供selenium、appium、playwright、minium（微信小程序自动化测试库）以及WinAppDriver（微软官方提供的一款用于做Window桌面应用程序的界面（UI）自动化测试工具）的page object的实现方案
-    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/htmlreport.png)
+
+更友好、更灵活的编写、管理与运行测试，生成更加美观的独立单文件 HTML 报告。内置参数化测试数据存取方案，省去设计的烦恼，节省更多的时间，从而更快的投入到编写用例阶段。
+
+![](https://github.com/hotswwkyo/stest/blob/main/img/htmlreport.png)
+
+### 功能特性
+
+| 类别 | 特性 |
+| :---- | :---- |
+| **用例管理** | 命名测试方法（与 docstring 不冲突）、设置执行顺序、用例依赖 |
+| **参数化** | 参数化测试、数据驱动测试、内置 Excel 数据存取方案（SevenDataProvider） |
+| **测试报告** | 简洁美观的独立单文件 HTML 报告、Jenkins JUnit XML 格式报告 |
+| **截图** | 测试失败自动截图、截图附加到报告、快速添加截图到报告 |
+| **配置** | 自动查找并载入项目 `settings.py` 配置文件、灵活控制截图与报告行为 |
+| **Page Object** | 内置 Selenium/Appium/Playwright/Minium/WinAppDriver 的 Page Object 实现方案 |
+| **驱动管理** | DRIVER_MANAGER 统一管理驱动会话，支持多实例切换 |
 
 
 ## 安装
 
-pip方式安装
-> pip install stest
+```bash
+# pip 方式安装
+pip install stest
 
-源码方式安装(注意以管理员方式执行)
-> python setup.py install
+# 源码方式安装（需以管理员方式执行）
+python setup.py install
+```
 
 ## 执行测试
-命令行执行
-> python -m stest -v -html D:\temp\tms_apitest.html calculation_test.py
 
-> python -m stest discover -s erp_autotest\testcases -p *.py
+```bash
+# 执行指定测试文件，生成 HTML 报告
+python -m stest -v -html D:\temp\tms_apitest.html calculation_test.py
 
-查看命令行参数
-> python -m stest -h
+# 发现并执行指定目录下的测试
+python -m stest discover -s erp_autotest\testcases -p *.py
 
-代码中调stest.main()执行
+# 查看命令行帮助
+python -m stest -h
+```
+
+代码中调用 `stest.main()` 执行：
 
 ```python
 #!/usr/bin/env python
@@ -48,684 +52,896 @@ from stest import Test as testcase
 
 
 def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
-
-    return [[1,2,3], [3,4,7]]
+    return [[1, 2, 3], [3, 4, 7]]
 
 
 class Demo1Test(AbstractTestCase):
 
-    @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
+    @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', name='两数加法测试01')
     def integer_addition_02(self, number_1, number_2, expected):
-
         result = number_1 + number_2
         self.assertEqual(result, expected)
+
+
 if __name__ == '__main__':
-    # Demo1Test.run_test()
     stest.main()
 ```
 
 ## 快速开始
 
-1. 导入抽象测试类（AbstractTestCase）和测试方法装饰器（Test）
-2. 编写继承自AbstractTestCase的测试子类，子类提供以下实用方法
-    - collect_testcases()
-        > 获取类下所有使用Test装饰的enable为True，并根据priority排序后的测试用例对象列表
-    - build_self_suite()
-        > 构建该类测试用例构成的测试套件
-    - run_test()
-        > 执行该类所有使用Test装饰的enable为True，并根据priority排序后的测试用例
-3. 使用Test标记测试方法。
-4. 直接调用测试类的run_test()执行测试
-* 简单示例
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
+1. 导入 `AbstractTestCase` 和 `Test` 装饰器
+2. 编写继承自 `AbstractTestCase` 的测试类，使用 `@Test` 装饰器标记测试方法
+3. 调用 `stest.main()` 或 `TestClassName.run_test()` 执行测试
 
-    from stest import AbstractTestCase
-    from stest import Test as testcase
+`AbstractTestCase` 提供以下实用方法：
 
+| 方法 | 说明 |
+| :---- | :---- |
+| `collect_testcases()` | 获取类下所有 `@Test` 装饰且 `enabled=True`，按 `priority` 排序后的用例列表 |
+| `build_self_suite()` | 构建该类测试用例构成的测试套件 |
+| `run_test()` | 执行该类所有 `@Test` 装饰且 `enabled=True`，按 `priority` 排序后的用例 |
 
-    def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
+### 简单示例
 
-        return [[1,2,3], [3,4,7]]
-
-
-    class Demo1Test(AbstractTestCase):
-
-        @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
-        def integer_addition_02(self, number_1, number_2, expected):
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-    if __name__ == '__main__':
-        Demo1Test.run_test()
-    ```
-
-* 综合示例（来自源码包下的samples/calculation_test.py）
-
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
-    '''
-    @Author: 思文伟
-    @Date: 2021/03/30 15:49:32
-    '''
-    import os
-
-    from stest import settings
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    class DataProvider01(object):
-        def get_testdatas(self, testclass, testmethod, *args, **kwargs):
-
-            datas = [
-                {'加数1':1,'加数2':2,'预期':3},
-                {'加数1':4,'加数2':5,'预期':9}
-            ]
-            return datas
-
-    class DataProvider02(object):
-        def get_testdatas(self, testclass, testmethod, *args, **kwargs):
-
-            datas = [
-                [{'加数1':7}, {'加数2':5}, {'预期':12}],
-                [{'加数1':10}, {'加数2':5}, {'预期':15}]
-            ]
-            return datas
-
-    TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
-
-
-    class CalculationTest(AbstractTestCase):
-        """数学运算测试"""
-        @classmethod
-        def setUpClass(cls):
-            pass
-
-        def setUp(self):
-            pass
-
-        @testcase(priority=1, enabled=True, data_provider=DataProvider01().get_testdatas, author='思文伟', description='整数加法测试01')
-        def integer_addition_01(self, testdata):
-            """自定义数据提供者 - 测试方法一个参数化示例"""
-
-            number_1 = testdata.get("加数1")
-            number_2 = testdata.get("加数2")
-            expected = testdata.get("预期")
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-
-        @testcase(priority=2, enabled=True, data_provider=DataProvider02().get_testdatas, author='思文伟', description='整数加法测试02')
-        def integer_addition_02(self, testdata_01, testdata_02, testdata_03):
-            """自定义数据提供者 - 测试方法多个参数化示例"""
-
-            number_1 = testdata_01.get("加数1")
-            number_2 = testdata_02.get("加数2")
-            expected = testdata_03.get("预期")
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-
-        @testcase(priority=3, enabled=True, author='思文伟', description='整数减法测试01')
-        def integer_subtraction_01(self):
-            """不参数化示例"""
-
-            number_1 = 21
-            number_2 = 10
-            result = number_1 - number_2
-            expected = 11
-            self.assertEqual(result, expected)
-
-        @testcase(priority=4, enabled=True, author='思文伟', data_provider_kwargs={'data_file_dir_path':TEST_DATA_FILE_DIRPATH}, description='整数减法测试02')
-        def integer_subtraction_02(self, testdata):
-            """使用内置的数据提供者 - 传入测试数据文件所在的目录路径"""
-
-            number_1 = testdata.get("减数1")
-            number_2 = testdata.get("减数2")
-            expected = testdata.get("预期")
-
-            result = int(number_1) - int(number_2)
-            self.assertEqual(result, int(expected))
-
-        @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
-        def integer_subtraction_03(self,testdata):
-            """使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-            则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
-            ，没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
-            """
-
-            number_1 = testdata.get("减数1")
-            number_2 = testdata.get("减数2")
-            expected = testdata.get("预期")
-
-            result = int(number_1) - int(number_2)
-            self.assertEqual(result, int(expected))
-
-        def tearDown(self):
-            pass
-
-        @classmethod
-        def tearDownClass(cls):
-            pass
-
-    if __name__ == '__main__':
-        CalculationTest.run_test()
-
-    ```
-
-## settings.py配置文件
-可以通过命令行参数-sfile指定配置文件路径或者指定查找配置文件的开始目录路径，如果未指定，则框架会自动递归遍历项目目录（根据用例所在目录往外推，第一个非python包的目录即被认定为项目目录）及其子孙目录，查找settings.py配置文件，找到则会在收集用例测试数据之前自动导入该文件。可通过from stest import settings 导入配置对象，然后通过settings对象访问配置文件中的配置字段（字段必须是大写的,如：settings.SCREENSHOT）
-* 框架使用的配置
-    | 字段 | 描述 |
-    | :---- | :---- |
-    | SCREENSHOT | 控制测试失败后是否自动截图 |
-    | ATTACH_SCREENSHOT_TO_REPORT | 控制截图后是否附加到测试报告中，如果附加到报告中，则截图转base64数据附加到报告中 |
-    | SCREENSHOT_SAVE_DIR | 以后将用到的字段，截图存放目录 |
-    | SEVEN_DATA_PROVIDER_DATA_FILE_DIR | 内置参数化数据提供者(SevenDataProvider)读取的测试数据文件所在的目录路径，不设置则自动获取测试用例所在模块的目录路径作为测试数据文件所在的目录路径，内置参数化数据提供者会从该目录路径查找用例测试数据文件 |
-    | TEST_REPORT_DIR | 测试报告存放目录，优先级低于从命令行参数传入的。命令行没有传入以及配置文件没有设置，则获取模块所在的目录作为存放目录，如果测试模块也没有传入，则不生成测试报告 |
-    | TEST_REPORT_NAME | 测试报告名称，优先级低于从命令行参数传入的。命令行没有传入以及配置文件没有设置，则获取模块名称作为报告名，如果连测试模块也没有给，则获取命令行设置的测试任务名作为报告名称，任务名也未设置则用测试开始时间作为报告名称 |
-    | EXECUTOR | 任务执行人，命令行没有传入则取该设置 |
-    | PROJECT_NAME | 项目名称，命令行没有传入则取该设置 |
-    | DESCRIPTION | 描述，命令行没有传入则取该设置 |
-    | DRIVER_MANAGER | 驱动管理器，框架自动赋值，勿修改 |
-    | TEST_PARAM_ALIAS | stest.Test 参数别名 |
-    | TEST_PARAM_NAME_FORMAT_STRING | stest.Test 参数格式化字符串或者格式化函数，用于在测试报告中如何显示。格式化字符串中可用的变量为{param}和{alias}，{param}为参数字段，{alias}为参数别名。如果是一个函数，则需要接收两个参数，第一个是参数字段名，第二个是参数字段别名，返回值须是字符串，否则不起作用 |
-    | TEST_PARAM_VALUE_FORMATTER | stest.Test参数值格式化，用于在测试报告中如何显示参数值，字典或者一个接收参数名和参数值两个参数的函数，如果是一个函数，则作用与所有参数，函数返回值不是字符串则不起作用。如果是字典，键名是参数名称，键值是一个接收参数名和参数值两个参数的函数 |
-
-* 示例
-    ```python
-    # -*- coding: utf-8 -*-
-    import os
-    import html
-    from stest.report.html import elements
-
-    # settings.py 所在目录路径
-    PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-    # 测试用例数据目录
-    SEVEN_DATA_PROVIDER_DATA_FILE_DIR = os.path.join(PROJECT_DIR, "testdata")
-
-    # 测试报告存放目录
-    TEST_REPORT_DIR = os.path.join(PROJECT_DIR, "report")
-
-    # 截图存放目录
-    SCREENSHOT_SAVE_DIR = os.path.join(PROJECT_DIR, "screenshot")
-
-    # 测试环境地址
-    WEB_URL = "https://tv.cctv.com/live/cctv13"
-
-    # 账号&密码
-    USER_NAME = "siwenwei"
-    USER_PWD = "123456"
-
-    TEST_PARAM_NAME_FORMAT_STRING = "{param} - {alias}"
-
-    TEST_PARAM_ALIAS = {"priority": "优先级",
-                        "author": "编写者",
-                        "editors": "修改者",
-                        "last_modifyied_by": "最后修改者",
-                        "last_modified_time": "最近修改时间",
-                        "groups": "所属组",
-                        "related_testcases": "相关用例"
-                        }
-
-
-    def test_param_value_formatter(param, value):
-
-        if isinstance(value, (list, tuple)):
-            html_texts = []
-            for one in value:
-                text = one if isinstance(one, str) else str(one)
-                html_texts.append(elements.P(html.escape(text, False)).to_html())
-            return "".join(html_texts)
-        else:
-            return None
-
-    TEST_PARAM_VALUE_FORMATTER = dict(related_testcases=test_param_value_formatter)
-    ```
-    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_01.png)
-
-    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_02.png)
-
-
-* stestdemo
-    >    ![](https://github.com/hotswwkyo/stest/blob/main/img/project_dirs.png)
-
-## Test参数说明
-
-| 参数 | 类型 | 描述 |
-| :---- | :---- | :---- |
-| name | 字符串 | 测试用例名称，未传或者为空，则取测试用例方法docstring的首行 |
-| dname | 字符串或列表 | 用于给用例起一个用于设置依赖的名称 |
-| depends | 列表 | 用于设置用例依赖，是一个用例依赖列表 |
-| groups | 列表 | 方法所属的组的列表|
-| enabled | 布尔值 | 是否启用执行该测试方法 |
-| priority | 整数 | 测试方法的执行优先级，数值越小执行越靠前 |
-| alway_run | 布尔值 | 如果设置为True，不管依赖它所依赖的其他用例结果如何都始终运行，为False时，则它所依赖的其他用例不成功，就不会执行，默认值为False |
-| description | 字符串 | 弃用，原用于设置测试用例名称 |
-| data_provider | object | 测试方法的参数化数据提供者，默认值是None，AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表（当测试方法只有一个参数化时，应返回一维列表，多个参数化时返回二维列表） |
-| data_provider_args | 元祖 | 数据提供者变长位置参数(args) |
-| data_provider_kwargs | 字典 | 数据提供者变长关键字参数(kwargs) |
-| screenshot | 布尔值 | 控制该用例测试失败是否截图，该设置优先级大于配置文件中的截图设置 |
-| attach_screenshot_to_report | 布尔值 | 控制该用例是否附加测试失败的截图到测试报告中，优先级大于配置文件中的截图设置 |
-| enable_default_data_provider | 布尔值 | 是否使用内置数据提供者(SevenDataProvider)，默认值是True，未设置data_provider，且该值为True 才会使用内置数据提供者(SevenDataProvider) |
-
-## 用例依赖设置
-用例依赖于其它用例成功后执行，如用例所依赖的用例不成功或没有执行，则该用例会被设置为失败。在实际当中，有时会需要用到两个或多个测试用例依赖运行，比如这一种场景：添加和删除设备，如果只有一台设备，那么添加和删除这两个用例就会共用测试数据，就会产生依赖（即：删除设备用例依赖于添加设备用例成功后执行）
-
-* dname和depends参数使用示例
-
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
-    '''
-    @Author: 思文伟
-    @Date: 2021/09/29
-    '''
-
-    import stest
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    class DependTest(AbstractTestCase):
-        """依赖设置测试"""
-        @classmethod
-        def setUpClass(cls):
-            pass
-
-        def setUp(self):
-            pass
-
-        @testcase(priority=1, enabled=True, author='思文伟', description='dtest1', depends=['vnctest.py'])
-        def dtest1(self):
-            """ 用例依赖于vnctest.py模块中的所有用例 """
-
-            pass
-
-        @testcase(priority=2, enabled=True, author='思文伟', description='dtest2', depends=['vnctest.py.LoginTest'])
-        def dtest2(self):
-            """ 用例依赖于vnctest.py模块中LoginTest类的所有用例 """
-
-            pass
-
-        @testcase(priority=2, enabled=True, author='思文伟', description='dtest3', depends=['vnctest.py.LoginTest.login'])
-        def dtest3(self):
-            """ 用例依赖于vnctest.py模块中LoginTest类的login用例 """
-            pass
-
-        @testcase(priority=2, enabled=True, author='思文伟', description='dtest4', dname='four')
-        def dtest4(self):
-            """ 命名用例为 four """
-            pass
-
-        @testcase(priority=2, enabled=True, author='思文伟', description='dtest5', depends=['dtest6'])
-        def dtest5(self):
-            """ 用例依赖于当前类的dtest6用例 """
-            pass
-
-        @testcase(priority=2, enabled=True, author='思文伟', description='dtest6', depends=['four'])
-        def dtest6(self):
-            """ 用例依赖于当前类的命名为four的dtest4用例 """
-            pass
-
-        def tearDown(self):
-            pass
-
-        @classmethod
-        def tearDownClass(cls):
-            pass
-
-
-    if __name__ == '__main__':
-        stest.main()
-
-    ```
-
-## 参数化数据提供者(data provider)
-
- 测试方法装饰器Test会调用数据提供者(data provider), 传测试类名称和测试方法名称给data provider的前两个固定位置参数, data_provider_args参数传给data provider的变长位置参数，data_provider_kwargs参数传给data provider的变长关键字参数
-
-### 内置参数化数据提供者 - SevenDataProvider
-
-实现了参数化测试数据存取方案，使用excel（xlsx或xls格式）存取和管理维护参数化测试数据，简洁直观，易于修改维护。数据在文件中以用例数据块的方式存储。
-
-* 数据块定义：
-    >- 所有行中的第一列是标记列，第一行第一列是数据块开始标记
-    >- 第一行: 用例名称信息(标记列的下一列是用例方法名称列，之后是用例名称列)
-    >- 第二行: 用例数据标题
-    >- 第三行 开始 每一行都是一组完整的测试数据直至遇见空行或者下一个数据块
-
-    >![](https://github.com/hotswwkyo/stest/blob/main/img/testcase_data_excel_file.png)
-
-* kwargs变长关键字参数接收参数:
-    >- data_file_name - 数据文件名称
-    >- data_file_dir_path - 数据文件所在目录路径
-    >- sheet_name_or_index - 数据文件中数据所在的工作表索引(从0开始)或名称
-
-* 返回值
-    测试数据行信息字典构成的一维列表, 如：
-    > [{"减数1": "36", "减数2": "10", "预期": "26"}, {"减数1": "57", "减数2": "30", "预期": "27"}]
-    >![](https://github.com/hotswwkyo/stest/blob/main/img/testcase_data_excel_file.png)
-
-* 使用
-    框架是默认启用内置的数据提供者（SevenDataProvider）所以不需要做任何设置，返回值是测试数据行信息字典构成的一维列表，所以测试方法统一接收一个参数化参数
-    - 启用条件
-        >- 测试方法装饰器Test参数enable_default_data_provider 为True，默认值是True
-        >- 测试方法装饰器Test参数data_provider 为None（即未设置数据提供者），默认值是True为None
-
-    - 数据文件存放目录
-        stest.settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置，设置了则取该值作为参数化测试数据文件的查找目录，否则以被装饰的测试方法所在的模块目录作为查找目录
-        > data_provider_kwargs={'data_file_dir_path':'E:\\mytestdatas'}
-
-    - 数据文件名
-        通过测试方法装饰器Test参数data_provider_kwargs传入data_file_name，如果没有传入，则取测试方法所属的测试类名作为测试数据文件名称
-        > data_provider_kwargs={'data_file_name':'mytest'}
-
-* 示例
-```python
-class CalculationTest(AbstractTestCase):
-        @classmethod
-        def setUpClass(cls):
-            pass
-
-        def setUp(self):
-            pass
-
-        @testcase(priority=4, enabled=True, author='思文伟', data_provider_kwargs={'data_file_dir_path':'E:\\alltest'}, description='整数减法测试02')
-        def integer_subtraction_02(self, testdata):
-            """使用内置的数据提供者 - 传入测试数据文件所在的目录路径"""
-
-            number_1 = testdata.get("减数1")
-            number_2 = testdata.get("减数2")
-            expected = testdata.get("预期")
-
-            result = int(number_1) - int(number_2)
-            self.assertEqual(result, int(expected))
-
-        @testcase(priority=5, enabled=True, author='思文伟', description='整数减法测试03')
-        def integer_subtraction_03(self,testdata):
-            """使用内置的数据提供者 - 不传入测试数据文件所在的目录路径,
-            则会检测settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR 是否设置
-            ，没有设置则会使用该方法所属的测试类所在的模块目录路径作为测试数据文件的查找目录
-            """
-
-            number_1 = testdata.get("减数1")
-            number_2 = testdata.get("减数2")
-            expected = testdata.get("预期")
-
-            result = int(number_1) - int(number_2)
-            self.assertEqual(result, int(expected))
-
-        def tearDown(self):
-            pass
-
-        @classmethod
-        def tearDownClass(cls):
-            pass
-
-    if __name__ == '__main__':
-        CalculationTest.run_test()
-```
-
-
-### 自定义参数化数据提供者
-
-自定义参数化数据提供者，可以是AbsractDataProvider的子类或者一个可调用的对象，返回数据集列表（当测试方法只有一个参数化时，应返回一维列表，多个参数化时返回二维列表），必须接收两个固定位置参数，变长位置参数(args)和变长关键字参数(kwargs)，固定位置参数，第一个是测试类名，第二个是测试方法名。
-
-* 返回值
-    > 返回测试方法的参数化测试数据列表
-    >- 测试方法只有一个参数化时, 返回一维列表 如: demotest(self, testdata), data provider 返回 [{'name':'zhansan', 'age':17}, {'name':'xiaoming', 'age':18}]，方法demotest会执行两次，第一次参数testdata是：{'name':'zhansan', 'age':17}，
-    第二次则是：{'name':'xiaoming', 'age':18}
-    >- 测试方法有多个参数化时，返回二维列表 如: demotest(self, name, age), data provider 返回 [['zhansan', 17], ['xiaoming', 18]], 方法demotest会执行两次，第一次参数name和age的值分别是：'zhansan', 18，
-    第二次则是：'xiaoming', 18
-
-* 实现方式
-    >- 继承AbsractDataProvider，实现get_testdatas(self, test_class_name, test_method_name, *args, **kwargs)方法
-    >- 其他类型的类似接收以下参数的可调用对象 ------> get_testdatas(test_class_name, test_method_name, *args, **kwargs)
-
-* 使用
-    > 通过测试方法装饰器Test参数data_provider来设置为自己的数据提供者（data provider）, 参数data_provider_args和data_provider_kwargs分别用来传给数据提供者（data provider）对应的变长位置参数(args)和变长关键字参数(kwargs)
-
-* 示例
-    > 继承自AbsractDataProvider的数据提供者示例(来自内置数据提供者 - SevenDataProvider)
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
-    '''
-    @Author: 思文伟
-    '''
-
-    import os
-    from stest import utils
-    from stest.attrs_marker import Var
-    from stest.abstract_data_provider import AbsractDataProvider
-    from stest.excel_file_reader import TestCaseExcelFileReader as ExcelReader
-
-
-    class SevenDataProvider(AbsractDataProvider):
-
-        FILE_EXT = Var(".xlsx", True, "数据文件拓展名")
-        BLOCK_FLAG = Var("用例名称", True, "用例分隔标记")
-        DEFAULT_SHEET_INDEX = Var(0, True, "默认从索引为0的工作表读取数据")
-
-        # get_datasets方法变长字典参数kwargs接收的参数的键名
-        PARAM_DATA_FILE_NAME = Var("data_file_name", True, "数据文件名称参数")
-        PARAM_DATA_FILE_DIR_PATH = Var("data_file_dir_path", True, "数据文件所在目录路径参数")
-        PARAM_SHEET_NAME_OR_INDEX = Var("sheet_name_or_index", True, "数据文件中数据所在的工作表索引(从0开始)或名称参数")
-        KWARGS_NAMES = Var((PARAM_DATA_FILE_NAME, PARAM_DATA_FILE_DIR_PATH, PARAM_SHEET_NAME_OR_INDEX), True, "接收的参数名")
-
-        def _get_data_file_name(self, kwargs, default_value=None):
-
-            param = self.PARAM_DATA_FILE_NAME
-            filename = kwargs.get(param, default_value)
-            if utils.is_blank_space(filename):
-                raise ValueError("数据文件名必须是字符串类型且不能为空")
-            return filename
-
-        def _get_data_file_dir_paht(self, kwargs):
-
-            param = self.PARAM_DATA_FILE_DIR_PATH
-            if param not in kwargs.keys():
-                raise AttributeError("没有传入数据文件目录")
-            dirpath = kwargs[param]
-            if utils.is_blank_space(dirpath):
-                raise ValueError("数据文件目录必须是字符串类型且不能为空")
-            return dirpath
-
-        def _get_sheet_name_or_index(self, kwargs):
-            return kwargs.get(self.PARAM_SHEET_NAME_OR_INDEX, self.DEFAULT_SHEET_INDEX)
-
-        def _build_file_full_path(self, data_file_dir_path, data_file_name):
-            """构建完整的excel数据文件路径
-
-            Args:
-                data_file_dir_path: 文件目录
-                data_file_name: 文件名称
-            """
-
-            name = data_file_name
-            ext = self.FILE_EXT
-            if utils.is_blank_space(data_file_dir_path):
-                raise ValueError("传入的数据文件目录路径不能为空：{}".format(data_file_dir_path))
-            dir_path = data_file_dir_path
-            if name and not utils.is_blank_space(name):
-                full_name = name if name.endswith(ext) else name + ext
-            else:
-                raise ValueError("无效数据文件名称：{}".format(name))
-            return os.path.join(dir_path, full_name)
-
-        def get_testdatas(self, test_class_name, test_method_name, *args, **kwargs):
-            """根据文件名从指定的excel文件(xlsx文件格式)读取出数据, 返回一维列表，每个元素是excel表中一行测试数据信息字典.
-            eg: [{"减数1": "36", "减数2": "10", "预期": "26"}, {"减数1": "57", "减数2": "30", "预期": "27"}]
-
-            Args:
-                kwargs:
-                    file_name 数据文件名, 不提供则测试类名称作为文件名
-                    file_dir_path 数据文件所在目录路径
-                    sheet_index_or_name Excel工作表索引(从0开始)或名称,不提供则默认取索引0的工作表
-            """
-
-            datasets = []
-
-            filename = self._get_data_file_name(kwargs, test_class_name)
-            dirpath = self._get_data_file_dir_paht(kwargs)
-            full_file_path = self._build_file_full_path(dirpath, filename)
-
-            reader = ExcelReader(full_file_path, testcase_block_separators=self.BLOCK_FLAG, sheet_index_or_name=self._get_sheet_name_or_index(kwargs))
-            datas_blocks = reader.load_testcase_data()
-            for block in datas_blocks:
-                if block.name == test_method_name:
-                    for row in block.datas:
-                        line = {}
-                        for cell in row:
-                            for title, value in cell.items():
-                                if title in line.keys():
-                                    continue
-                                else:
-                                    line[title] = value
-                        datasets.append(line)
-                    break
-            return datasets
-
-
-    class CalculationTest(AbstractTestCase):
-        @classmethod
-        def setUpClass(cls):
-            pass
-
-        def setUp(self):
-            pass
-
-        @testcase(priority=1, enabled=True, data_provider=SevenDataProvider, data_provider_kwargs={'data_file_dir_path':'E:\\mytestdatas'}, author='思文伟', description='整数加法测试01')
-        def integer_addition_01(self, testdata):
-            """自定义数据提供者 - 测试方法一个参数化示例"""
-
-            number_1 = testdata.get("加数1")
-            number_2 = testdata.get("加数2")
-            expected = testdata.get("预期")
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-
-        def tearDown(self):
-            pass
-
-        @classmethod
-        def tearDownClass(cls):
-            pass
-
-    if __name__ == '__main__':
-        CalculationTest.run_test()
-
-    ```
-
-    > 非AbsractDataProvider子类数据提供者示例
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
-    '''
-    @Author: 思文伟
-    '''
-
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    class Demo1DataProvider(object):
-
-        def get_testdatas(self, test_class_name, test_method_name, *args, **kwargs):
-
-            return [[1,2,3],[3,4,7]]
-
-
-    class Demo1Test(AbstractTestCase):
-
-        @testcase(priority=1, enabled=True, data_provider=Demo1DataProvider().get_testdatas, author='思文伟', description='两数加法测试01')
-        def integer_addition_02(self, number_1, number_2, expected):
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-
-    if __name__ == '__main__':
-
-        Demo1Test.run_test()
-    ```
-
-    > 函数数据提供者示例
-    ```python
-    #!/usr/bin/env python
-    # -*- encoding: utf-8 -*-
-    '''
-    @Author: 思文伟
-    '''
-
-    from stest import AbstractTestCase
-    from stest import Test as testcase
-
-
-    def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
-
-        return [[1,2,3], [3,4,7]]
-
-
-    class Demo1Test(AbstractTestCase):
-
-        @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', description='两数加法测试01')
-        def integer_addition_02(self, number_1, number_2, expected):
-
-            result = number_1 + number_2
-            self.assertEqual(result, expected)
-
-    if __name__ == '__main__':
-
-        Demo1Test.run_test()
-    ```
-
-## 钩子(hook)
-
->* 通过wrapper 定义钩子
->* 钩子函数需要能接收它所挂载到的宿主函数的所有参数，此外还需要接收一个额外参数作为第一个位置参数，这个额外参数为全局变量settings。
->* 通过runstage参数指定钩子的运行阶段，框架会根据运行阶段标志执行钩子
->* 框架内置运行阶段标志见 RunStage类，对应于SevenTestResult的同名方法。编写这些运行阶段的钩子函数时，除了第一个参数为全局变量settings外，其它参数与SevenTestResult的同名方法参数一一对应
-
-#### 示例
 ```python
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-import stest
-from stest import hook
 from stest import AbstractTestCase
 from stest import Test as testcase
+
+
+def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
+    return [[1, 2, 3], [3, 4, 7]]
+
+
+class Demo1Test(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True, data_provider=get_testdatas, author='思文伟', name='两数加法测试01')
+    def integer_addition_02(self, number_1, number_2, expected):
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+
+
+if __name__ == '__main__':
+    Demo1Test.run_test()
+```
+
+### 综合示例
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+@Date: 2021/03/30 15:49:32
+'''
+import os
+from stest import settings
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+
+class DataProvider01(object):
+    def get_testdatas(self, testclass, testmethod, *args, **kwargs):
+        return [
+            {'加数1': 1, '加数2': 2, '预期': 3},
+            {'加数1': 4, '加数2': 5, '预期': 9}
+        ]
+
+
+class DataProvider02(object):
+    def get_testdatas(self, testclass, testmethod, *args, **kwargs):
+        return [
+            [{'加数1': 7}, {'加数2': 5}, {'预期': 12}],
+            [{'加数1': 10}, {'加数2': 5}, {'预期': 15}]
+        ]
+
+
+TEST_DATA_FILE_DIRPATH = os.path.dirname(os.path.abspath(__file__))
+
+
+class CalculationTest(AbstractTestCase):
+    """数学运算测试"""
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, data_provider=DataProvider01().get_testdatas, author='思文伟', name='整数加法测试01')
+    def integer_addition_01(self, testdata):
+        """自定义数据提供者 - 单参数化"""
+        number_1 = testdata.get("加数1")
+        number_2 = testdata.get("加数2")
+        expected = testdata.get("预期")
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+
+    @testcase(priority=2, enabled=True, data_provider=DataProvider02().get_testdatas, author='思文伟', name='整数加法测试02')
+    def integer_addition_02(self, testdata_01, testdata_02, testdata_03):
+        """自定义数据提供者 - 多参数化"""
+        number_1 = testdata_01.get("加数1")
+        number_2 = testdata_02.get("加数2")
+        expected = testdata_03.get("预期")
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+
+    @testcase(priority=3, enabled=True, author='思文伟', name='整数减法测试01')
+    def integer_subtraction_01(self):
+        """不参数化"""
+        self.assertEqual(21 - 10, 11)
+
+    @testcase(priority=4, enabled=True, author='思文伟', data_provider_kwargs={'data_file_dir_path': TEST_DATA_FILE_DIRPATH}, name='整数减法测试02')
+    def integer_subtraction_02(self, testdata):
+        """内置数据提供者 - 指定数据文件目录"""
+        result = int(testdata.get("减数1")) - int(testdata.get("减数2"))
+        self.assertEqual(result, int(testdata.get("预期")))
+
+    @testcase(priority=5, enabled=True, author='思文伟', name='整数减法测试03')
+    def integer_subtraction_03(self, testdata):
+        """内置数据提供者 - 自动查找数据文件目录"""
+        result = int(testdata.get("减数1")) - int(testdata.get("减数2"))
+        self.assertEqual(result, int(testdata.get("预期")))
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+
+if __name__ == '__main__':
+    CalculationTest.run_test()
+```
+
+## settings.py 配置文件
+
+框架会自动查找并载入项目下的 `settings.py` 配置文件，通过 `from stest import settings` 导入配置对象，访问配置字段（字段必须大写，如 `settings.SCREENSHOT`）。
+
+**查找规则：**
+
+1. 通过命令行参数 `-sfile` 指定配置文件路径或查找起始目录
+2. 若未指定，框架自动递归遍历项目目录（从用例所在目录往外推，第一个非 Python 包的目录即被认定为项目目录）及其子孙目录，查找 `settings.py`
+
+### 框架配置字段
+
+| 字段 | 描述 |
+| :---- | :---- |
+| `SCREENSHOT` | 控制测试失败后是否自动截图 |
+| `ATTACH_SCREENSHOT_TO_REPORT` | 控制截图后是否附加到测试报告中（附加则转为 base64 嵌入报告） |
+| `SCREENSHOT_SAVE_DIR` | 截图存放目录（预留字段） |
+| `SEVEN_DATA_PROVIDER_DATA_FILE_DIR` | 内置数据提供者（SevenDataProvider）读取的测试数据文件目录。未设置则自动取测试用例所在模块目录 |
+| `TEST_REPORT_DIR` | 测试报告存放目录。优先级：命令行参数 > 配置文件 > 模块目录 |
+| `TEST_REPORT_NAME` | 测试报告名称。优先级：命令行参数 > 配置文件 > 模块名 > 任务名 > 测试开始时间 |
+| `EXECUTOR` | 任务执行人，命令行未传入则取该设置 |
+| `PROJECT_NAME` | 项目名称，命令行未传入则取该设置 |
+| `DESCRIPTION` | 测试报告概要描述，命令行未传入则取该设置 |
+| `DRIVER_MANAGER` | 驱动管理器，框架自动赋值，勿修改 |
+| `TEST_PARAM_ALIAS` | `@Test` 参数别名字典，用于测试报告中参数显示名称映射 |
+| `TEST_PARAM_NAME_FORMAT_STRING` | `@Test` 参数格式化字符串或函数。字符串可用变量：`{param}`（参数字段）、`{alias}`（参数别名）；函数接收字段名和别名两个参数，返回字符串 |
+| `TEST_PARAM_VALUE_FORMATTER` | `@Test` 参数值格式化。字典（键为参数名，值为格式化函数）或统一格式化函数，函数接收参数名和参数值两个参数 |
+
+### 配置文件示例
+
+```python
+# settings.py
+import os
+import html
+from stest.report.html import elements
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 测试用例数据目录
+SEVEN_DATA_PROVIDER_DATA_FILE_DIR = os.path.join(PROJECT_DIR, "testdata")
+
+# 测试报告存放目录
+TEST_REPORT_DIR = os.path.join(PROJECT_DIR, "report")
+
+# 截图存放目录
+SCREENSHOT_SAVE_DIR = os.path.join(PROJECT_DIR, "screenshot")
+
+# 测试环境地址
+WEB_URL = "https://tv.cctv.com/live/cctv13"
+
+# 账号&密码
+USER_NAME = "siwenwei"
+USER_PWD = "123456"
+
+# 参数名称格式化
+TEST_PARAM_NAME_FORMAT_STRING = "{param} - {alias}"
+
+# 参数别名映射
+TEST_PARAM_ALIAS = {
+    "priority": "优先级",
+    "author": "编写者",
+    "editors": "修改者",
+    "last_modifyied_by": "最后修改者",
+    "last_modified_time": "最近修改时间",
+    "groups": "所属组",
+    "related_testcases": "相关用例",
+}
+
+
+# 参数值格式化函数
+def test_param_value_formatter(param, value):
+    if isinstance(value, (list, tuple)):
+        html_texts = []
+        for one in value:
+            text = one if isinstance(one, str) else str(one)
+            html_texts.append(elements.P(html.escape(text, False)).to_html())
+        return "".join(html_texts)
+    else:
+        return None
+
+
+TEST_PARAM_VALUE_FORMATTER = dict(related_testcases=test_param_value_formatter)
+```
+
+![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_01.png)
+
+![](https://github.com/hotswwkyo/stest/blob/main/img/test_param_format_02.png)
+
+### 项目目录结构示例
+
+![](https://github.com/hotswwkyo/stest/blob/main/img/project_dirs.png)
+
+## Test 装饰器参数说明
+
+| 参数 | 类型 | 描述 |
+| :---- | :---- | :---- |
+| `name` | str | 测试用例名称。未传或为空则取方法 docstring 首行 |
+| `dname` | str 或 list | 用于给用例起一个依赖名称，配合 `depends` 使用 |
+| `depends` | list | 用例依赖列表。被依赖的用例不成功则当前用例不执行（除非 `alway_run=True`） |
+| `groups` | list | 方法所属的组列表 |
+| `enabled` | bool | 是否启用执行该测试方法 |
+| `priority` | int | 执行优先级，数值越小越先执行 |
+| `alway_run` | bool | 为 `True` 时无论依赖用例结果如何都始终运行，默认 `False` |
+| `description` | str | 已弃用，原用于设置测试用例名称 |
+| `data_provider` | object | 参数化数据提供者。`AbsractDataProvider` 子类或可调用对象，返回数据集列表（单参数化返回一维列表，多参数化返回二维列表） |
+| `data_provider_args` | tuple | 数据提供者的变长位置参数 |
+| `data_provider_kwargs` | dict | 数据提供者的变长关键字参数 |
+| `screenshot` | bool | 控制该用例测试失败是否截图，优先级高于配置文件 |
+| `attach_screenshot_to_report` | bool | 控制该用例失败截图是否附加到报告，优先级高于配置文件 |
+| `enable_default_data_provider` | bool | 是否使用内置数据提供者（SevenDataProvider），默认 `True`。仅当 `data_provider=None` 且此值为 `True` 时生效 |
+
+## 用例依赖设置
+
+用例可依赖于其它用例成功后执行。若被依赖的用例不成功或未执行，则该用例会被标记为失败（除非设置了 `alway_run=True`）。
+
+典型场景：添加和删除设备共用测试数据，删除用例依赖于添加用例成功后执行。
+
+### 依赖引用格式
+
+| 格式 | 说明 | 示例 |
+| :---- | :---- | :---- |
+| `模块名.py` | 依赖于指定模块中的所有用例 | `depends=['vnctest.py']` |
+| `模块名.py.类名` | 依赖于指定模块中某个类的所有用例 | `depends=['vnctest.py.LoginTest']` |
+| `模块名.py.类名.方法名` | 依赖于指定模块中某个类的某个用例 | `depends=['vnctest.py.LoginTest.login']` |
+| `方法名` | 依赖于当前类的指定用例 | `depends=['dtest6']` |
+| `dname值` | 依赖于当前类中通过 `dname` 命名的用例 | `depends=['four']` |
+
+### 示例
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+@Date: 2021/09/29
+'''
+import stest
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+
+class DependTest(AbstractTestCase):
+    """依赖设置测试"""
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=1, enabled=True, author='思文伟', name='dtest1', depends=['vnctest.py'])
+    def dtest1(self):
+        """依赖于 vnctest.py 模块中的所有用例"""
+        pass
+
+    @testcase(priority=2, enabled=True, author='思文伟', name='dtest2', depends=['vnctest.py.LoginTest'])
+    def dtest2(self):
+        """依赖于 vnctest.py 模块中 LoginTest 类的所有用例"""
+        pass
+
+    @testcase(priority=2, enabled=True, author='思文伟', name='dtest3', depends=['vnctest.py.LoginTest.login'])
+    def dtest3(self):
+        """依赖于 vnctest.py 模块中 LoginTest 类的 login 用例"""
+        pass
+
+    @testcase(priority=2, enabled=True, author='思文伟', name='dtest4', dname='four')
+    def dtest4(self):
+        """命名用例为 four，供其他用例通过 dname 引用"""
+        pass
+
+    @testcase(priority=2, enabled=True, author='思文伟', name='dtest5', depends=['dtest6'])
+    def dtest5(self):
+        """依赖于当前类的 dtest6 用例"""
+        pass
+
+    @testcase(priority=2, enabled=True, author='思文伟', name='dtest6', depends=['four'])
+    def dtest6(self):
+        """依赖于当前类中 dname='four' 的 dtest4 用例"""
+        pass
+
+    def tearDown(self):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+
+if __name__ == '__main__':
+    stest.main()
+```
+
+## 参数化数据提供者（Data Provider）
+
+`@Test` 装饰器会调用数据提供者，传入测试类名称和方法名称作为前两个固定参数，`data_provider_args` 和 `data_provider_kwargs` 分别传给数据提供者的变长位置参数和关键字参数。
+
+### 返回值规则
+
+| 测试方法参数个数 | 数据提供者返回值 | 示例 |
+| :---- | :---- | :---- |
+| 单参数（如 `def test(self, testdata)`） | 一维字典列表 | `[{'name':'zhangsan','age':17}, {'name':'xiaoming','age':18}]` |
+| 多参数（如 `def test(self, name, age)`） | 二维列表 | `[['zhangsan', 17], ['xiaoming', 18]]` |
+
+### 内置数据提供者 - SevenDataProvider
+
+使用 Excel（xlsx 或 xls 格式）存取和管理参数化测试数据，简洁直观，易于修改维护。
+
+**启用条件：** `data_provider=None`（默认）且 `enable_default_data_provider=True`（默认）
+
+#### 数据块格式
+
+Excel 文件中以"数据块"方式存储测试数据：
+
+- 所有行的**第一列**为标记列，第一行第一列为数据块开始标记（默认为"用例名称"）
+- 第一行：用例名称信息（标记列的下一列为方法名称列，之后为用例名称列）
+- 第二行：用例数据标题
+- 第三行起：每一行为一组完整测试数据，直至空行或下一个数据块
+
+![](https://github.com/hotswwkyo/stest/blob/main/img/testcase_data_excel_file.png)
+
+#### 数据文件查找规则
+
+| 配置方式 | 说明 |
+| :---- | :---- |
+| `data_provider_kwargs={'data_file_dir_path':'路径'}` | 通过 `@Test` 装饰器指定数据文件目录 |
+| `settings.SEVEN_DATA_PROVIDER_DATA_FILE_DIR` | 在 `settings.py` 中配置全局数据文件目录 |
+| 自动查找 | 以上均未设置，则取测试方法所在模块的目录 |
+
+#### 数据文件名规则
+
+| 配置方式 | 说明 |
+| :---- | :---- |
+| `data_provider_kwargs={'data_file_name':'mytest'}` | 通过 `@Test` 装饰器指定数据文件名 |
+| 自动取类名 | 以上未设置，则取测试类名作为数据文件名 |
+
+#### 其他参数
+
+| 参数 | 说明 |
+| :---- | :---- |
+| `data_provider_kwargs={'sheet_name_or_index': 0}` | 指定 Excel 工作表索引（从 0 开始）或名称，默认取索引 0 |
+
+#### 示例
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+
+class CalculationTest(AbstractTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    @testcase(priority=4, enabled=True, author='思文伟',
+              data_provider_kwargs={'data_file_dir_path': 'E:\\alltest'},
+              name='整数减法测试02')
+    def integer_subtraction_02(self, testdata):
+        """内置数据提供者 - 指定数据文件目录"""
+        number_1 = testdata.get("减数1")
+        number_2 = testdata.get("减数2")
+        expected = testdata.get("预期")
+        result = int(number_1) - int(number_2)
+        self.assertEqual(result, int(expected))
+
+    @testcase(priority=5, enabled=True, author='思文伟', name='整数减法测试03')
+    def integer_subtraction_03(self, testdata):
+        """内置数据提供者 - 自动查找数据文件目录"""
+        number_1 = testdata.get("减数1")
+        number_2 = testdata.get("减数2")
+        expected = testdata.get("预期")
+        result = int(number_1) - int(number_2)
+        self.assertEqual(result, int(expected))
+```
+
+### 自定义数据提供者
+
+自定义数据提供者可以是 `AbsractDataProvider` 的子类或任何可调用对象，必须接收以下参数：
+
+```
+get_testdatas(test_class_name, test_method_name, *args, **kwargs)
+```
+
+#### 实现方式
+
+1. **继承 `AbsractDataProvider`**：实现 `get_testdatas(self, test_class_name, test_method_name, *args, **kwargs)` 方法
+2. **可调用对象**：任何接收上述参数签名的函数或方法
+
+#### 示例
+
+**继承 `AbsractDataProvider` 的数据提供者：**
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+from stest import AbstractTestCase
+from stest import Test as testcase
+from stest.abstract_data_provider import AbsractDataProvider
+
+
+class SevenDataProvider(AbsractDataProvider):
+    """示例：内置 SevenDataProvider 的简化版"""
+
+    def get_testdatas(self, test_class_name, test_method_name, *args, **kwargs):
+        # 从 Excel 文件读取数据的逻辑
+        return [{"减数1": "36", "减数2": "10", "预期": "26"}]
+
+
+class CalculationTest(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True,
+              data_provider=SevenDataProvider,
+              data_provider_kwargs={'data_file_dir_path': 'E:\\mytestdatas'},
+              author='思文伟', name='整数加法测试01')
+    def integer_addition_01(self, testdata):
+        number_1 = testdata.get("加数1")
+        number_2 = testdata.get("加数2")
+        expected = testdata.get("预期")
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+```
+
+**普通类的数据提供者：**
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+
+class Demo1DataProvider(object):
+
+    def get_testdatas(self, test_class_name, test_method_name, *args, **kwargs):
+        return [[1, 2, 3], [3, 4, 7]]
+
+
+class Demo1Test(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True,
+              data_provider=Demo1DataProvider().get_testdatas,
+              author='思文伟', name='两数加法测试01')
+    def integer_addition_02(self, number_1, number_2, expected):
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+```
+
+**函数数据提供者：**
+
+```python
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@Author: 思文伟
+'''
+from stest import AbstractTestCase
+from stest import Test as testcase
+
+
+def get_testdatas(test_class_name, test_method_name, *args, **kwargs):
+    return [[1, 2, 3], [3, 4, 7]]
+
+
+class Demo1Test(AbstractTestCase):
+
+    @testcase(priority=1, enabled=True,
+              data_provider=get_testdatas,
+              author='思文伟', name='两数加法测试01')
+    def integer_addition_02(self, number_1, number_2, expected):
+        result = number_1 + number_2
+        self.assertEqual(result, expected)
+```
+
+## 钩子(hook)
+
+钩子机制允许在测试执行的关键节点（运行阶段）插入自定义逻辑，实现测试生命周期的扩展。
+
+### 核心概念
+
+- **钩子（Hook）**：通过 `hook.wrapper` 装饰器定义的函数，在指定运行阶段自动执行
+- **宿主函数（Host Function）**：被钩子挂载的函数，通过 `hook.host` 装饰器标记。宿主函数执行时，框架会根据运行策略自动触发挂载的钩子
+- **运行阶段（RunStage）**：钩子触发的时机，对应 `SevenTestResult` 的各个生命周期方法
+- **运行策略（RunPolicy）**：钩子相对于宿主函数的执行时机
+
+### 运行策略
+
+| 策略 | 值 | 说明 |
+| :---- | :---- | :---- |
+| `RunPolicy.BEFORE` | 1 | 在宿主函数执行**之前**运行钩子 |
+| `RunPolicy.AFTER` | 2 | 在宿主函数执行**之后**运行钩子 |
+
+### 内置运行阶段
+
+框架内置以下运行阶段，对应 `SevenTestResult` 的同名方法：
+
+| 运行阶段 | 说明 | 钩子函数参数（第一个参数始终为 `settings`） |
+| :---- | :---- | :---- |
+| `RunStage.startTestRun` | 所有测试开始执行前 | `(settings, result)` |
+| `RunStage.startTest` | 单个测试开始执行前 | `(settings, test)` |
+| `RunStage.stopTest` | 单个测试执行完成后 | `(settings, test)` |
+| `RunStage.stopTestRun` | 所有测试执行完成后 | `(settings, result)` |
+| `RunStage.addSuccess` | 测试成功时 | `(settings, test)` |
+| `RunStage.addError` | 测试发生错误时 | `(settings, test, err)` |
+| `RunStage.addFailure` | 测试断言失败时 | `(settings, test, err)` |
+| `RunStage.addSkip` | 测试被跳过时 | `(settings, test, reason)` |
+| `RunStage.addExpectedFailure` | 预期失败发生时 | `(settings, test, err)` |
+| `RunStage.addUnexpectedSuccess` | 预期失败但意外成功时 | `(settings, test)` |
+
+### 定义钩子
+
+使用 `hook.wrapper` 装饰器定义钩子：
+
+```python
+hook.wrapper(runstage, *, runpolicy=RunPolicy.BEFORE, priority=49, name=None, options={})
+```
+
+| 参数 | 说明 |
+| :---- | :---- |
+| `runstage` | 钩子运行阶段，指定钩子在哪个生命周期节点触发 |
+| `runpolicy` | 运行策略，`RunPolicy.BEFORE`（宿主函数之前）或 `RunPolicy.AFTER`（宿主函数之后），默认 `BEFORE` |
+| `priority` | 运行优先级，数值越小越先执行，默认 49 |
+| `name` | 钩子名称，默认取函数名 |
+| `options` | 钩子额外属性字典 |
+
+**钩子函数签名规则：**
+
+1. 第一个参数必须为全局配置对象 `settings`
+2. 其余参数与对应运行阶段的宿主函数参数一一对应（见上方参数表）
+3. 框架会在注册时自动校验参数签名是否匹配，不匹配会抛出 `TypeError`
+
+### 标记宿主函数
+
+使用 `hook.host` 装饰器标记宿主函数，框架会在宿主函数执行前后自动触发对应阶段的钩子：
+
+```python
+hook.host(runstage, **options)
+```
+
+`options` 支持以下参数，用于控制钩子的排序和过滤：
+
+| 键 | 作用范围 | 说明 |
+| :---- | :---- | :---- |
+| `before` | `RunPolicy.BEFORE` 的钩子 | 字典，支持 `sort_key`、`sort_reverse`、`filter_func` |
+| `after` | `RunPolicy.AFTER` 的钩子 | 字典，支持 `sort_key`、`sort_reverse`、`filter_func` |
+
+> **注意**：框架内置的 `SevenTestResult` 方法已通过 `@host` 装饰器标记，无需手动标记。用户只需通过 `@hook.wrapper` 定义钩子即可。
+
+### 自定义运行阶段
+
+可通过 `RunStage.newstage()` 扩展自定义运行阶段：
+
+```python
+from stest import hook
+
+hook.RunStage.newstage("myCustomStage", 100, mark="自定义阶段描述")
+```
+
+### 示例
+
+**在测试运行前后启动和停止 Playwright：**
+
+```python
+import stest
+from stest import hook
 from playwright.sync_api import sync_playwright
 
-
 @hook.wrapper(hook.RunStage.startTestRun)
-def startTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
-    """Called once before any tests are executed."""
+def startTestRun(conf: stest.settings, result):
+    """所有测试开始前，启动 Playwright"""
     conf.playwright = sync_playwright().start()
 
-@hook.wrapper(hook.RunStage.stopTestRun)
-def stopTestRun(conf:stest.settings, result:stest.core.seven_result.SevenTestResult):
-    """Called once after all tests are executed."""
+@hook.wrapper(hook.RunStage.stopTestRun, runpolicy=hook.RunPolicy.AFTER)
+def stopTestRun(conf: stest.settings, result):
+    """所有测试结束后，停止 Playwright"""
     playwright = getattr(conf, 'playwright', None)
     if playwright is not None:
         playwright.stop()
 ```
 
+**在单个测试开始前打印日志：**
+
+```python
+@hook.wrapper(hook.RunStage.startTest, priority=10)
+def before_each_test(conf: stest.settings, test):
+    """每个测试开始前打印用例名称"""
+    print(f"开始执行: {test}")
+```
+
+**在测试失败时记录额外信息：**
+
+```python
+@hook.wrapper(hook.RunStage.addFailure)
+def on_failure(conf: stest.settings, test, err):
+    """测试断言失败时记录错误信息"""
+    print(f"测试失败: {test}, 错误: {err}")
+```
+
+
+## 表格定位器(Table Locator)
+
+基于 Playwright 的表格通用定位器，采用**"由列定表"**的设计理念：只需提供关心的列标题或列索引，即可自动生成高精度 XPath，精准定位目标表格，并提供行查找与数据提取能力。
+
+### 核心能力
+
+- **结构化定位**：按列标题、列索引或混合字典配置表格结构，自动生成高精度 XPath
+- **智能检测与修复**：通过 `sync_from_dom` 方法根据 DOM 检测结果同步或重建内部列配置
+- **多级表头支持**：自动解析 `colspan`/`rowspan`，将多行表头合并为扁平化的列标题
+- **便捷数据提取**：提供 `row()`、`cells()`、`cell()` 等链式 API
+
+### 快速使用
+
+```python
+from stest.testobjs.useful.table_locator import Table
+
+# 1. 创建 Table 实例 —— 传入列标题
+table = Table(page, '序号', '专资编码', '影城名称', '营业状态', '操作')
+
+# 2. 标记非数据列（提取数据时自动忽略）
+table.mark_non_data_columns_by_titles('操作', '序号')
+
+# 3. 按内容查找行
+row_el = table.row({"专资编码": "80002048"}, el_type="row")
+
+# 4. 提取行数据
+data = table.cells(row_el)
+# => {'专资编码': '80002048', '影城名称': '影院名称-80002048', '营业状态': '开业'}
+
+# 5. 遍历所有行
+for row in table.all_rows.all():
+    row_data = table.cells(row)
+    print(row_data)
+```
+
+### 初始化配置
+
+`Table` 的 `config` 参数支持多种类型（同一批次不可混用）：
+
+| 配置类型 | 示例 | 说明 |
+| :---- | :---- | :---- |
+| 字符串（列标题） | `Table(page, '姓名', '年龄')` | 最常用，`auto_set_position=True` 时标题顺序须与 DOM 一致 |
+| 整数（列索引） | `Table(page, 2, 5, auto_set_position=False)` | 适用于无标题或动态标题的表格 |
+| 字典 | `Table(page, {"index":1,"title":"姓名"}, {"index":2,"title":"年龄"})` | 精细控制，支持 `xpath`/`value`/`tagname` |
+| 列表/元组 | `Table(page, (1,'姓名'), (2,'年龄','div[@class="cell"]'))` | 按位置传参，2~5个元素 |
+
+**`auto_set_position` 参数说明：**
+
+| 值 | 适用场景 |
+| :---- | :---- |
+| `True`（默认） | 列顺序固定且已知，传入标题顺序须与 DOM 一致 |
+| `False` | 只关心列是否存在，不关心顺序；后续需配合 `sync_from_dom` 或 `allow_missing_position=True` |
+
+### 关键方法
+
+| 方法 | 说明 | 示例 |
+| :---- | :---- | :---- |
+| `row(cells, by, **settings)` | 按内容查找行或单元格 | `table.row({"专资编码": "80002048"}, el_type="row")` |
+| `cells(row, return_locator, title_as_key)` | 提取行数据（自动排除非数据列） | `table.cells(row_el)` |
+| `cell(row, title_or_position, by)` | 获取单个单元格 | `table.cell(row_el, "营业状态")` |
+| `sibling_cell(cell, target, by)` | 获取同行兄弟单元格 | `table.sibling_cell(code_cell, "营业状态")` |
+| `header_cells(title, position, row)` | 获取表头单元格 | `table.header_cells(title='姓名', row=1)` |
+| `mark_non_data_columns_by_titles(*titles)` | 按标题标记非数据列 | `table.mark_non_data_columns_by_titles('操作')` |
+| `mark_non_data_columns_by_position(*positions)` | 按索引标记非数据列 | `table.mark_non_data_columns_by_position(1, 5)` |
+| `set_body_cell_xpath(cxpath, *titles)` | 设置指定主体列的内部元素路径 | `table.set_body_cell_xpath('div[@class="action-btns"]', '操作')` |
+| `detect_header_titles()` | 自动检测表头信息（含多级表头） | `table.detect_header_titles()` |
+| `sync_from_dom(mode, by, sep)` | 从 DOM 同步/重建列配置 | `table.sync_from_dom(mode="rebuild")` |
+
+### 固定列表格示例（Element UI）
+
+Element UI 固定列会将表格拆分为多个独立的 `<table>` DOM 节点，需修改默认 XPath：
+
+```python
+from stest.testobjs.useful.table_locator import Table
+
+titles = ['序号', '专资编码', '影城名称', '院线', '影投', '营业状态',
+          '终端绑定状态', '终端安装状态', '操作']
+
+right_table = Table(page, *titles)
+
+# 覆盖默认 XPath，指向固定列所在的 DOM 节点
+right_table.default_head_xpath = (
+    '//div[@class="el-table__fixed-right"]'
+    '/div[contains(@class,"el-table__fixed-header-wrapper")]'
+    '/table/thead'
+)
+right_table.default_body_xpath = (
+    './ancestor::table/parent::div'
+    '/following-sibling::div[contains(@class,"el-table__fixed-body-wrapper")]'
+    '/table/tbody'
+)
+
+right_table.mark_non_data_columns_by_titles('操作')
+
+# 正常使用
+row_el = right_table.row({"专资编码": "80002048"}, el_type="row")
+data = right_table.cells(row_el)
+```
+
+### 关键点
+
+- **`default_head_xpath` 与 `default_body_xpath`**：默认针对 Element UI 标准表格设计。固定列场景必须修改；标准 HTML 表格（thead 与 tbody 在同一 `<table>` 内）可将 `default_body_xpath` 简化为 `./tbody`
+- **`allow_missing_position`**：当 `auto_set_position=False` 时列索引为 `None`，生成的 XPath 可能模糊。建议调用 `sync_from_dom()` 自动填充索引，而非设置 `allow_missing_position = True`
+- **`cxpaths_for_rebuild`**：`sync_from_dom` 重建时会丢失 `cxpath`，此属性充当"记忆层"确保重建后路径不丢失
+- **重复标题**：`by="title"` 仅匹配第一个出现的列，建议改用 `by="position"`
+- **XPath 注入**：`row()` 的 `cells` 参数值会直接嵌入 XPath，注意特殊字符转义
+
+> 详细教程请参考源码包下的 `stest/testobjs/useful/table_locator_tutorial.md`
 
 ## Page object 实现方案
 
-*  web页面、app页面和window应用程序页面封装（selenium appium WinAppDriver）
-    > 封装的页面类应继承自抽象页面类AbstractPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractPage.Elements（元素类）和AbstractPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性DRIVER_MANAGER指向驱动管理器，WIN_APP_DRIVER_HELPER指向启动和关闭WinAppDriver.exe助手。
-* 微信小程序页面封装（minium）
-    > 封装的页面类应继承自抽象页面类AbstractMiniumPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractMiniumPage.Elements（元素类）和AbstractMiniumPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性WECHAT_MANAGER指向驱动管理器
-* web页面封装（playwright 自动化测试工具）
-    > 封装的页面类应继承自抽象页面类AbstractPlaywrightPage。页面需要有两个内部类Elements（元素类）和Actions（动作类）,分别继承自抽象也的AbstractPlaywrightPage.Elements（元素类）和AbstractPlaywrightPage.Actions（动作类），分别用于封装页面的元素和页面动作。实例化页面的时候会自动实例化Elements（元素类）和Actions（动作类），分别赋给页面实例属性elements和actions。页面类属性DRIVER_MANAGER指向驱动管理器。
+框架内置三种抽象页面基类，分别对应不同的自动化测试工具，均遵循**"元素与动作分离"**的设计模式：
+
+| 抽象基类 | 适用场景 | 驱动技术 | 类属性 |
+| :---- | :---- | :---- | :---- |
+| `AbstractPage` | Web页面、APP页面、Windows桌面应用 | Selenium / Appium / WinAppDriver | `DRIVER_MANAGER`、`WIN_APP_DRIVER_HELPER` |
+| `AbstractPlaywrightPage` | Web页面 | Playwright | `DRIVER_MANAGER` |
+| `AbstractMiniumPage` | 微信小程序 | minium | `WECHAT_MANAGER` |
+
+### 设计模式
+
+所有抽象基类遵循统一的页面封装规范：
+
+1. **页面类**继承对应的抽象基类，可覆写 `init()` 方法执行自定义初始化逻辑
+2. **内部类 `Elements`**（继承基类的 `Elements`）：封装页面元素定位，通过 `@property` 暴露元素访问接口
+3. **内部类 `Actions`**（继承基类的 `Actions`）：封装页面操作动作，通过 `self.page.elements` 访问元素，所有动作方法返回 `self` 以支持链式调用
+4. 页面实例化时自动构建 `Elements` 和 `Actions` 实例，分别赋给 `self.elements` 和 `self.actions`
+
+### AbstractPage（Selenium / Appium / WinAppDriver）
+
+**核心能力：**
+
+- **多驱动支持**：通过 `DRIVER_MANAGER` 统一管理 Selenium、Appium、WinAppDriver 驱动会话，支持多驱动实例切换
+- **丰富的元素查找**：提供 `find_element_by_id`、`find_element_by_xpath`、`find_element_by_android_uiautomator`、`find_element_by_accessibility_id` 等 20+ 种定位方法，支持超时等待
+- **浏览器管理**：`chrome()`、`firefox()`、`ie()` 快捷打开浏览器；`maximize_window()`、`set_window_size()` 管理窗口
+- **APP 会话**：`open_app()` 创建 Appium 会话；`hide_keyboard()`、`keyevent()` 处理移动端特有操作
+- **Windows 应用**：`open_window_app()` 创建 WinAppDriver 会话；`switch_window_app_by_name()` 切换应用窗口；`WIN_APP_DRIVER_HELPER` 管理驱动启停
+- **窗口与 Frame**：`switch_window_by_title()`、`switch_window_by_url()` 切换窗口；`select_frame()`、`default_frame()`、`parent_frame()` 切换 Frame
+- **滚动操作**：`scroll_to()`、`scroll_to_top()`、`scroll_to_bottom()`、`scroll_to_center()`、`scroll_into_view()`
+- **截图与报告**：`screenshot()` 保存截图；`show2html()` 截图并附加到 HTML 测试报告
+- **XPath 拼接**：`join_xpaths()` 静态方法，便捷拼接多段 XPath
+
+**驱动创建方式：**
+
+```python
+# 方式1：实例化后调用浏览器方法（推荐）
+page = LoginPage().chrome(url="https://example.com")
+
+# 方式2：实例化时传入驱动名称
+page = LoginPage("chrome", url="https://example.com")
+
+# 方式3：APP 会话
+page = LoginPage().open_app(remote_url, desired_capabilities=caps)
+
+# 方式4：Windows 应用
+page = LoginPage().open_window_app(remote_url, desired_capabilities=caps)
+```
+
+### AbstractPlaywrightPage（Playwright）
+
+**核心能力：**
+
+- **多浏览器支持**：`chrome()`、`chromium()`、`firfox()`、`msedge()`、`webkit()`（别名 `safari()`）快捷打开浏览器，支持 `browser_launch_args` 和 `browser_context_args` 自定义启动参数
+- **Playwright 原生 Page 访问**：`pwpage` 属性直接获取底层 Playwright `Page` 实例，可调用 Playwright 原生 API（如 `pwpage.get_by_role()`、`pwpage.wait_for_selector()` 等），适用于框架未封装的 Playwright 能力
+- **Playwright 原生定位**：`get_by_xpath()`、`get_by_id()`、`get_by_text()`、`get_by_alt_text()`、`get_by_title()`、`get_by_placeholder()`、`locator()`、`frame_locator()` 等，完整封装 Playwright 的定位能力
+- **页面导航**：`open_url()`、`goto()`、`reload()`、`content()`、`new_page()`
+- **多页面管理**：`switch2page()` 切换到指定 Page；`switch_to_default_page()` 回到默认页面；`get_playwright_pages_by_title()`、`get_playwright_pages_by_url()` 按标题/URL 查找页面
+- **Frame 操作**：`frame()`、`main_frame`、`frames`
+- **滚动操作**：`scroll_to()`、`scroll_to_top()`、`scroll_to_bottom()`、`scroll_to_center()`、`scroll_into_view()`
+- **视口管理**：`set_viewport_size()`、`viewport_size()`
+- **截图与报告**：`screenshot()` 保存截图；`show2html()` 截图并附加到 HTML 测试报告
+- **XPath 拼接**：`join_xpaths()` 类方法，便捷拼接多段 XPath
+- **自动清理**：支持配置 `PlaywrightDriver.AUTO_STOP_PLAYWRIGHT`，测试运行结束后自动停止 Playwright 进程
+
+**驱动创建方式：**
+
+```python
+# 方式1：实例化后调用浏览器方法（推荐）
+page = LoginPage().chrome()
+
+# 方式2：实例化时传入浏览器类型
+page = LoginPage("chromium", browser_launch_args=dict(channel="chrome"))
+
+# 方式3：指定启动参数
+page = LoginPage().chrome(browser_launch_args=dict(channel="chrome"))
+```
+
+**IDE 类型提示：**
+
+由于 `Elements` 和 `Actions` 通过反射自动构建，IDE 无法自动推断类型。可通过覆写 `_build_elements()` 和 `_build_actions()` 方法，使用 `typing.cast()` 解决：
+
+```python
+import typing
+
+class LoginPage(AbstractPlaywrightPage):
+
+    def _build_elements(self):
+        rv = super()._build_elements()
+        self.elements = typing.cast(LoginPage.Elements, self.elements)
+        return rv
+
+    def _build_actions(self):
+        rv = super()._build_actions()
+        self.actions = typing.cast(LoginPage.Actions, self.actions)
+        return rv
+```
+
+### AbstractMiniumPage（微信小程序）
+
+**核心能力：**
+
+- **minium 集成**：自动初始化 minium 实例，通过 `self.mini`、`self.native`、`self.app` 访问 minium 原生能力
+- **页面导航**：实例化时传入 `url` 参数自动跳转到指定小程序页面
+- **元素查找**：`get_element()`、`get_elements()` 封装 minium 的元素查找，支持 `inner_text`、`text_contains`、`value` 等筛选条件
+- **当前页面**：`current_page` 属性获取当前小程序页面实例
+
+**初始化方式：**
+
+```python
+# 传入小程序页面路径和 minium 配置
+page = IndexPage('/pages/index/index', minium_config={
+    "platform": "ide",
+    "debug_mode": "info",
+    "close_ide": False,
+    ...
+})
+```
+
+### 公共约定
+
+- **链式调用**：`Actions` 中的方法返回 `self`，支持链式操作：`page.actions.username(name).password(pwd).login()`
+- **延时等待**：页面和 Elements/Actions 均提供 `sleep(seconds)` 方法
+- **翻页接口**：`Actions.turn_to_page(page_number)` 由具体页面实现
+- **驱动管理**：所有页面通过 `DRIVER_MANAGER`（或 `WECHAT_MANAGER`）统一管理驱动生命周期，支持多实例、别名切换
 
 ### Web页面示例
 ```python
@@ -814,7 +1030,7 @@ class WebLoginPageTest(AbstractTestCase):
     def setUp(self):
         pass
 
-    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='用正确账号密码登录测试')
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', name='用正确账号密码登录测试')
     def login_with_right_user_and_password(self, testdata):
 
         user = testdata.get("用户名")
@@ -966,7 +1182,7 @@ class AppLoginPageTest(AbstractTestCase):
     def setUp(self):
         pass
 
-    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='成功登录测试')
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', name='成功登录测试')
     def test_successfully_login(self, testdata):
 
         name = testdata.get("用户名")
@@ -1375,7 +1591,7 @@ class WechatMiniPageTest(AbstractTestCase):
     def setUp(self):
         pass
 
-    @testcase(priority=1, enabled=True, author='思文伟', description='广告投放界面->广告视频显示的正确性 - 影院列表>加入广告栏')
+    @testcase(priority=1, enabled=True, author='思文伟', name='广告投放界面->广告视频显示的正确性 - 影院列表>加入广告栏')
     def test_add_ad_to_ad_basket_in_cinemalist(self, testdata):
 
         ad_name = testdata.get('广告名')
@@ -1524,7 +1740,7 @@ class VNCViewerPageTest(AbstractTestCase):
     def setUp(self):
         pass
 
-    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', description='用正确账号密码登录测试')
+    @testcase(priority=1, enabled=True, screenshot=True, author='思文伟', name='用正确账号密码登录测试')
     def connect_remote_pc_desktop(self, testdata):
 
         ip = testdata.get("远程桌面登录账户")

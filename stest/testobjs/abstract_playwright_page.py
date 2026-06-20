@@ -267,7 +267,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         Parameters
         ----------
-            element : Locator - 目标元素定位器(None表示滚动浏览器窗口)
+        element : Locator - 目标元素定位器(None表示滚动浏览器窗口)
         """
         if element is None:
             # 浏览器窗口滚动到底部
@@ -501,7 +501,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
                         pages.append(page)
         return pages
 
-    def show2html(self, testcase, *, name="", path=None, **screenshot_kwargs):
+    def show2html(self, testcase, name="", path=None, **screenshot_kwargs):
         """截图并显示到html测试报告中
 
         Parameters
@@ -615,7 +615,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         **Usage**
 
-        ```py
+        ```python
         page = browser.new_page()
         page.set_viewport_size({\"width\": 640, \"height\": 480})
         page.goto(\"https://example.com\")
@@ -734,7 +734,7 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
 
         You can locate by the id value:
 
-        ```py
+        ```python
         # Matches <input>
         page.get_by_id(\"passwordFU\")
         ```
@@ -826,3 +826,12 @@ class AbstractPlaywrightPage(attrs_manager.AttributeManager):
             """翻页， 由具体页面实现"""
 
             raise NotImplementedError
+
+        def show2html(self, testcase, name="", path=None, **screenshot_kwargs):
+            """截图并显示到html测试报告中
+
+            refer to the `AbstractPlaywrightPage.show2html`
+            """
+
+            self.page.show2html(testcase, name=name, path=path, **screenshot_kwargs)
+            return self

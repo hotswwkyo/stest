@@ -1125,7 +1125,7 @@ class AbstractPage(attrs_manager.AttributeManager):
         """
         return ScreenshotCapturer.screenshot(file_name, self.driver)
 
-    def show2html(self, testcase, *, name="", path=None):
+    def show2html(self, testcase, name="", path=None):
         """截图并显示到html测试报告中
 
         Parameters
@@ -1509,3 +1509,11 @@ class AbstractPage(attrs_manager.AttributeManager):
             """翻页， 由具体页面实现"""
 
             raise NotImplementedError
+
+        def show2html(self, testcase, name="", path=None):
+            """截图并显示到html测试报告中
+
+            refer to the `AbstractPage.show2html`
+            """
+
+            return self.page.show2html(testcase, name=name, path=path)

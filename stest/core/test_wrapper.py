@@ -81,34 +81,34 @@ class Test(object):
             def setUp(self):
                 pass
 
-            @testcase(priority=1, enabled=True, author='思文伟', description='dtest1', depends=['vnctest.py'])
+            @testcase(priority=1, enabled=True, author='思文伟', name='dtest1', depends=['vnctest.py'])
             def dtest1(self):
                 \""" 用例依赖于vnctest.py模块中的所有用例 \"""
 
                 pass
 
-            @testcase(priority=2, enabled=True, author='思文伟', description='dtest2', depends=['vnctest.py.LoginTest'])
+            @testcase(priority=2, enabled=True, author='思文伟', name='dtest2', depends=['vnctest.py.LoginTest'])
             def dtest2(self):
                 \""" 用例依赖于vnctest.py模块中LoginTest类的所有用例 \"""
 
                 pass
 
-            @testcase(priority=2, enabled=True, author='思文伟', description='dtest3', depends=['vnctest.py.LoginTest.login'])
+            @testcase(priority=2, enabled=True, author='思文伟', name='dtest3', depends=['vnctest.py.LoginTest.login'])
             def dtest3(self):
                 \""" 用例依赖于vnctest.py模块中LoginTest类的login用例 \"""
                 pass
 
-            @testcase(priority=2, enabled=True, author='思文伟', description='dtest4', dname='four')
+            @testcase(priority=2, enabled=True, author='思文伟', name='dtest4', dname='four')
             def dtest4(self):
                 \""" 命名用例为 four \"""
                 pass
 
-            @testcase(priority=2, enabled=True, author='思文伟', description='dtest5', depends=['dtest6'])
+            @testcase(priority=2, enabled=True, author='思文伟', name='dtest5', depends=['dtest6'])
             def dtest5(self):
                 \""" 用例依赖于当前类的dtest6用例\"""
                 pass
 
-            @testcase(priority=2, enabled=True, author='思文伟', description='dtest6', depends=['four'])
+            @testcase(priority=2, enabled=True, author='思文伟', name='dtest6', depends=['four'])
             def dtest6(self):
                 \""" 用例依赖于当前类的命名为four的dtest4用例\"""
                 pass
