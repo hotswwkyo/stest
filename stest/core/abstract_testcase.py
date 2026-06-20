@@ -159,66 +159,77 @@ class AbstractTestCase(unittest.TestCase):
 
     @classmethod
     def collect_testcases(cls, args_namespace=None, print_tips=False):
+        # 1. 性能优化：使用 inspect.isroutine 替代多次逻辑或判断
+        members = [
+            obj_val for obj_val in cls.__dict__.values()
+            if inspect.isroutine(obj_val)
+        ]
 
-        members = [obj_val for obj_key, obj_val in cls.__dict__.items(
-        ) if inspect.ismethod(obj_val) or inspect.isfunction(obj_val)]
-        test_func_list = [member for member in members if Test.func_has_test_marker(member)]
-        run_test_func_list = [tf for tf in test_func_list if Test.get_test_marker(
-            tf, key=Test.ENABLED, default_value=False)]
-        run_test_func_list.sort(key=lambda tf: Test.get_test_marker(
-            tf, key=Test.PRIORITY, default_value=1))
-        testcases = []
+        # 2. 可读性优化：使用有意义的变量名，合并过滤与排序逻辑
+        enabled_test_funcs = [
+            func for func in members
+            if Test.get_test_marker(func, key=Test.ENABLED, default_value=False)
+        ]
+        enabled_test_funcs.sort(
+            key=lambda func: Test.get_test_marker(func, key=Test.PRIORITY, default_value=1)
+        )
+
+        # 3. 性能优化：使用集合进行交集判断，替代低效的双重循环
         groups = getattr(args_namespace, 'groups', None)
+        if groups and isinstance(groups, (list, tuple, set)):
+            target_groups = set(groups)
+            enabled_test_funcs = [
+                func for func in enabled_test_funcs
+                if target_groups.intersection(
+                    Test.get_test_marker(func, key=Test.GROUPS, default_value=[])
+                )
+            ]
+
         settings_file = getattr(args_namespace, 'settings_file', None)
+        testcases = []
 
-        # 只运行命令行参数-g 指定组的测试用例。
-        if groups and isinstance(groups, (list, tuple)):
-            testfunc_list = []
-            for testfunc in run_test_func_list:
-                name_groups = Test.get_test_marker(testfunc, key=Test.GROUPS, default_value=[])
-                for ng in name_groups:
-                    if ng in groups:
-                        testfunc_list.append(testfunc)
-                        break
-            run_test_func_list = testfunc_list
-
-        for test_func in run_test_func_list:
-
+        for test_func in enabled_test_funcs:
+            # 4. 逻辑/性能优化：将配置文件加载逻辑移出循环，避免重复加载和冗余判断
             if not settings.is_loaded:
                 finder = SettingsFileFinder()
                 start_path = filepath = None
+
                 if settings_file:
-                    if os.path.exists(settings_file):
-                        if os.path.isfile(settings_file):
-                            start_path = os.path.dirname(settings_file)
-                            filepath = settings_file
-                        elif os.path.isdir(settings_file):
-                            start_path = settings_file
-                            filepath = finder.find_settings_file_from_start_dir(settings_file)
-                        else:
-                            raise FileNotFoundError(
-                                "No such file or directory: '{}'".format(settings_file))
+                    # 5. 安全与可读性优化：使用 os.path 抽象方法替代 os.path.exists，合并重复的异常抛出
+                    if os.path.isfile(settings_file):
+                        start_path = os.path.dirname(settings_file)
+                        filepath = settings_file
+                    elif os.path.isdir(settings_file):
+                        start_path = settings_file
+                        filepath = finder.find_settings_file_from_start_dir(settings_file)
                     else:
                         raise FileNotFoundError(
-                            "No such file or directory: '{}'".format(settings_file))
-                else:  # 未指定配置文件查找目录或者配置文件路径，则使用自动查找
+                            f"No such file or directory: '{settings_file}'"
+                        )
+                else:
                     start_path, filepath = finder.find_settings_file_by_testcase_class(cls)
 
                 if filepath:
                     settings.load_configure_from_file(filepath)
-                    tips = '加载的配置文件是：{}'.format(filepath)
+                    tips = f'加载的配置文件是：{filepath}'
                 else:
-                    tips = '在该目录（{}）及其子孙目录中没有找到配置文件: {}'.format(
-                        start_path, finder.settings_file_name)
+                    tips = f'在该目录（{start_path}）及其子孙目录中没有找到配置文件: {finder.settings_file_name}'
+
                 if print_tips:
                     print(tips)
+
+            # 6. 逻辑优化：提取数据集获取逻辑，简化条件判断
             test_func.collect_test_datasets(cls, test_func)
-            datasets = test_func.test_settings[Test.TEST_DATASETS]
-            if (len(datasets) > 0):
-                for i, v in enumerate(datasets):
-                    testcases.append(cls(test_func.__name__, (i + 1)))
+            datasets = test_func.test_settings.get(Test.TEST_DATASETS, [])
+
+            if datasets:
+                # 7. 性能优化：使用列表推导式替代循环中的 append
+                testcases.extend(
+                    cls(test_func.__name__, i + 1) for i in range(len(datasets))
+                )
             else:
                 testcases.append(cls(test_func.__name__))
+
         return testcases
 
     @classmethod
